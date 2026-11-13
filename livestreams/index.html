@@ -1,104 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>D74 Edits | Live Streamings</title>
-
+  <title>D74 Edits | Live TV Channels</title>
   <link rel="shortcut icon" type="image/x-icon" href="../logo.png">
 
+  <meta name="description" content="Watch 168 live football and sports TV channels free on D74 Edits.">
+  <meta name="theme-color" content="#08090b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="../view/app.css">
   <link rel="stylesheet" href="style.stream.css">
-  <script src="../view/alert.js"></script>
 
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 
-<body>
-  <nav>
-    <div class="title" animation="true">D74 Edits <b>Live TV Channels</b></div>
-    <div class="right-icons">
-      <ion-icon name="options-outline" id="menuOpener"></ion-icon>
+<body class="dark">
+  <div class="ambient" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../" aria-label="D74 Edits home">
+        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">D74 Edits</span>
+          <span class="brand-sub">Live TV</span>
+        </span>
+      </a>
+
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="../explore/" data-nav="explore">Explore</a>
+        <a href="./" data-nav="livestreams">Live TV</a>
+        <a href="../search/" data-nav="search">Search</a>
+        <a href="../settings/" data-nav="settings">Settings</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" data-theme-toggle aria-label="Toggle colour theme">
+          <ion-icon name="sunny-outline" data-theme-icon></ion-icon>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="../login/" id="loginLink">Log in</a>
+        <button class="icon-btn" id="drawerOpen" aria-label="Open menu" aria-expanded="false">
+          <ion-icon name="menu-outline"></ion-icon>
+        </button>
+      </div>
     </div>
+  </header>
+
+  <main class="page">
+    <div class="container">
+      <section class="hero live-hero" data-reveal>
+        <span class="hero-eyebrow">
+          <span class="dot"><ion-icon name="radio-outline"></ion-icon></span>
+          Streaming 24/7
+        </span>
+        <h1 class="hero-title">Live TV, <em>anywhere</em>.</h1>
+        <p class="hero-sub">
+          Pick a channel and watch instantly. Football, sport and entertainment from around the world.
+        </p>
+      </section>
+
+      <div class="live-layout">
+        <section class="live-main" aria-label="Channel player">
+          <div class="player-shell">
+            <iframe
+              id="frame"
+              src="../livehelper/player.html"
+              title="Live channel player"
+              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+              allowfullscreen
+              referrerpolicy="no-referrer"></iframe>
+          </div>
+          <div class="player-title">
+            <span id="title">Choose a channel to start watching</span>
+            <span class="badge badge-live">Live</span>
+          </div>
+        </section>
+
+        <aside class="panel live-side" aria-label="Channel list">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Channels</h2>
+              <p class="section-desc" id="channelCount">Loading…</p>
+            </div>
+            <button class="icon-btn" id="randomChannel" type="button" aria-label="Play a random channel">
+              <ion-icon name="shuffle-outline"></ion-icon>
+            </button>
+          </div>
+
+          <div class="search-bar live-search">
+            <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+            <input type="search" id="channelSearch" placeholder="Find a channel…" aria-label="Search channels">
+          </div>
+
+          <div class="channel-list" id="list" aria-live="polite">
+            <div class="skeleton" aria-hidden="true" style="height:44px"></div>
+            <div class="skeleton" aria-hidden="true" style="height:44px"></div>
+            <div class="skeleton" aria-hidden="true" style="height:44px"></div>
+            <div class="skeleton" aria-hidden="true" style="height:44px"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <nav class="dock" aria-label="Quick navigation">
+    <a class="dock-link" href="../explore/" data-nav="explore">
+      <ion-icon name="compass-outline"></ion-icon>
+      <span>Explore</span>
+    </a>
+    <a class="dock-link" href="../search/" data-nav="search">
+      <ion-icon name="search-outline"></ion-icon>
+      <span>Search</span>
+    </a>
+    <a class="dock-link active" href="./" data-nav="livestreams">
+      <ion-icon name="tv-outline"></ion-icon>
+      <span>Live</span>
+    </a>
+    <a class="dock-link" href="../settings/" data-nav="settings">
+      <ion-icon name="settings-outline"></ion-icon>
+      <span>Settings</span>
+    </a>
   </nav>
 
-  <div class="left-bar">
-    <div class="left-bar-close" id="leftBarCloser">
-      <ion-icon name="close-circle-outline"></ion-icon>
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawer-head">
+      <span class="drawer-brand">
+        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">D74 Edits</span>
+          <span class="brand-sub">Live TV</span>
+        </span>
+      </span>
+      <button class="icon-btn" id="drawerClose" aria-label="Close menu">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
     </div>
-    <div class="left-box">
-      <div class="link">
-        <ion-icon src="../icons/home-outline.svg"></ion-icon>
-        <div>
-          <p>Explore</p>
-          <div class="small">Explore new video shorts</div>
-        </div>
-      </div>
-      <div class="link" onclick="window.open('https://youtube.com')">
-        <ion-icon src="../icons/settings-2-outline.svg"></ion-icon>
-        <div>
-          <p>Settings</p>
-          <div class="small">Adjust to your own preference</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('https://youtube.com/@d74edits67')">
-        <ion-icon name="notifications-outline"></ion-icon>
-        <div>
-          <p>Subscribe</p>
-          <div class="small">Subscribe now, its free</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('https://youtube.com/@d74edits67')">
-        <ion-icon name="logo-youtube"></ion-icon>
-        <div>
-          <p>YouTube</p>
-          <div class="small">Yes, this channel available in YouTube</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('../login')" id="loginLink">
+    <div class="drawer-links">
+      <a class="drawer-link" href="../explore/" data-nav="explore">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore<small class="sub">Fresh clips & highlights</small></span>
+      </a>
+      <a class="drawer-link active" href="./" data-nav="livestreams">
+        <ion-icon name="tv-outline"></ion-icon>
+        <span>Live TV<small class="sub">168 channels, 24/7</small></span>
+      </a>
+      <a class="drawer-link" href="../search/" data-nav="search">
+        <ion-icon name="search-outline"></ion-icon>
+        <span>Search<small class="sub">Find any clip fast</small></span>
+      </a>
+      <a class="drawer-link" href="../settings/" data-nav="settings">
+        <ion-icon name="settings-outline"></ion-icon>
+        <span>Settings<small class="sub">Theme & account</small></span>
+      </a>
+      <a class="drawer-link" href="../login/" data-nav="login" id="drawerLogin">
         <ion-icon name="person-outline"></ion-icon>
-        <div>
-          <p>Log In</p>
-          <div class="small">Login now, now its free</div>
-        </div>
-      </div>
+        <span>Log in<small class="sub">Free account</small></span>
+      </a>
     </div>
-  </div>
+    <div class="drawer-foot">
+      <p>Free football clips and live TV. Built to be fast, responsive and private.</p>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
-  <div class="body">
-    <div class="player-box">
-      <iframe src="../livehelper/blank.html" frameborder="0" class="player" id="frame"></iframe>
-      <p id="title">Loading...</p>
-    </div>
-    <div class="list-channels" id="list">
-      <div class="playbox">
-        <div class="playbox-text">Loading...</div>
-        <div class="right-icons">
-          <ion-icon name="horizontal-dots-outline"></ion-icon>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="menu">
-    <div class="menu-icon">
-      <ion-icon src="../icons/home-outline.svg" onclick="redirctTo('../explore')"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon name="search-outline" class="" onclick="redirctTo('../search')"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon src="../icons/tv.svg" class="active"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon src="../icons/settings-2-outline.svg" class="" onclick="redirctTo('../settings')"></ion-icon>
-    </div>
+  <div class="loader-bg" id="pageLoader" aria-label="Loading">
+    <div class="loader"></div>
   </div>
 
   <script src="../view/d74.js"></script>
   <script src="../view/app.js"></script>
-  <script src="../livehelper/api.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../view/ui.js"></script>
   <script src="stream.js"></script>
 </body>
 

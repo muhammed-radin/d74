@@ -1,125 +1,94 @@
-unload()
-signup()
+"use strict";
 
-class UserDataModel {
-  constructor(name, email, id, data) {
-    this.name = name
-    this.email = email
-    this.id = id
-    this.data = data
-    // this.device = navigator.userAgent
-    this.location = window.location.href;
-    this.date = new Date().toString()
-    this.languages = navigator.languages.join(',')
-    // this.platform = navigator.userAgentData.platform
-    // this.brandsAndVersion = JSON.stringify(navigator.userAgentData.brands);
-    // var user = JSON.parse(localStorage.getItem('user'))
-    // if (user.model) this.model = user.model;
-  }
-}
+/* ------------------------------------------------------------------
+   Signup controller — the server hashes the password before storage.
+------------------------------------------------------------------ */
 
-function signup(lg = false) {
-  var user = JSON.parse(localStorage.getItem('user'))
+(function () {
+  const form = document.getElementById("signupForm");
+  const name = document.getElementById("username");
+  const email = document.getElementById("email");
+  const password = document.getElementById("password");
+  const confirm = document.getElementById("confPass");
+  const submit = document.getElementById("submit");
+  const errorBox = document.getElementById("formError");
 
-  if (localStorage.getItem('user')) {
-    if (user.name.includes('guest') && user.email.includes('guest')) {
-      if (user.id == undefined) {
-        setText('Updating...')
-        loadit()
-        db.get('account?q=' + decodeURI(JSON.stringify({ name: user.name, email: user.email })), function(xhr) {
-          var res = JSON.parse(xhr.response)
-          if (res.length == 0) {
-            localStorage.removeItem('user')
-          } else {
-            localStorage.setItem('user', JSON.stringify(new UserDataModel(user.name, user.email, res[0]._id, JSON.stringify(res))))
-          }
-          unload()
-          signup(true)
-        })
-      }
-    } else {
-
+  function parse(xhr) {
+    if (!xhr) return null;
+    if (typeof xhr.json === "function") return xhr.json();
+    try {
+      return JSON.parse(xhr.response);
+    } catch (_) {
+      return null;
     }
   }
 
-  function $(id) {
-    return document.getElementById(id)
+  function showError(message) {
+    errorBox.textContent = message;
+    errorBox.classList.add("show");
   }
 
-  document.getElementById('submit').addEventListener('click', function() {
+  function clearError() {
+    errorBox.classList.remove("show");
+    errorBox.textContent = "";
+  }
 
-    console.log($('email').value.slice($('email').value.lastIndexOf('.') + 1, $('email').value.length).length)
+  function loading(on) {
+    submit.disabled = on;
+    submit.classList.toggle("is-loading", on);
+    submit.innerHTML = on
+      ? '<span class="loader-sml"></span> Creating account…'
+      : "Create account";
+  }
 
-    if ($('username').value == false ||
-      $('password').value == false ||
-      $('confPass').value == false ||
-      $('email') == false) {
-      alert('please fill inputs')
-    } else if ($('email').value.includes('@') == false ||
-      $('email').value.includes('.') == false ||
-      ($('email').value.slice($('email').value.lastIndexOf('.'), $('email').value.length).length >= 2) == false
-    ) {
-      alert('please type vail email')
-    } else if (($('password').value.length >= 7) == false) {
-      alert('password required minimum 8 letters')
-    } else if (($('password').value == $('confPass').value) == false) {
-      alert('password and configure password is not equal')
-    } else {
-      setText('Creating...')
-      loadit()
-      if (localStorage.getItem('user')) {
-        db.put('account/' + JSON.parse(localStorage.getItem('user')).id, JSON.stringify({
-          name: document.getElementById('username').value,
-          password: document.getElementById('password').value,
-          email: document.getElementById('email').value,
-        }), function(xhr) {
-          var res = JSON.parse(xhr.response);
-          if (xhr.status != 200) {
-            alert('Account Creation Failed', 'can\'t create account')
-          } else {
-            redirctTo('../login/?email=' + $('email').value + '&password=' + $('password').value)
-          }
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    clearError();
 
-          unload()
-        })
-      } else {
-        db.post('account', JSON.stringify({
-          name: document.getElementById('username').value,
-          password: document.getElementById('password').value,
-          email: document.getElementById('email').value,
-        }), function(xhr) {
-          var res = JSON.parse(xhr.response);
-          if (xhr.status != 201) {
-            alert('Account Creation Failed', 'can\'t create account')
-          } else {
-            redirctTo('../login/?email=' + $('email').value + '&password=' + $('password').value)
-          }
+    const nameValue = name.value.trim();
+    const emailValue = email.value.trim().toLowerCase();
+    const passwordValue = password.value;
 
-          unload()
-        })
-      }
+    if (nameValue.length < 2 || nameValue.length > 48) {
+      return showError("Your name must be between 2 and 48 characters.");
     }
-  })
-}
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailValue)) {
+      return showError("Please enter a valid email address.");
+    }
+    if (passwordValue.length < 8) {
+      return showError("Password must be at least 8 characters.");
+    }
+    if (passwordValue !== confirm.value) {
+      return showError("The passwords do not match.");
+    }
 
-function setText(txt) {
-  document.querySelector('.loadtitle').innerHTML = txt
-}
+    loading(true);
+    const created = await db.signup(nameValue, emailValue, passwordValue);
+    const createdData = parse(created);
 
-document.querySelector('.block-div').style.zIndex = '9999';
+    if (created.status !== 201) {
+      loading(false);
+      if (created.status === 0) return showError("Network unavailable. Check your connection.");
+      if (created.status === 429) return showError("Too many attempts. Please wait a few minutes.");
+      if (created.status === 409) return showError("An account with this email already exists. Try logging in.");
+      return showError((createdData && createdData.error) || "Could not create your account.");
+    }
 
-function loadit() {
-  document.querySelector('.block-div').style.display = 'block';
+    // Sign the new account straight in so there is no extra step.
+    const loggedIn = await db.login(emailValue, passwordValue);
+    const loggedInData = parse(loggedIn);
+    loading(false);
 
-  document.querySelectorAll('.center *').forEach(function(elem) {
-    elem.style.display = 'block'
-  })
-}
+    if (loggedIn.status === 200 && loggedInData && loggedInData.user) {
+      try {
+        localStorage.setItem("user", JSON.stringify(loggedInData.user));
+      } catch (_) {}
+      if (window.toast) toast("Account created. Welcome to D74 Edits!", "success", 1400);
+      window.location.href = "../explore/";
+      return;
+    }
 
-function unload() {
-  document.querySelector('.block-div').style.display = 'none';
-
-  document.querySelectorAll('.center *').forEach(function(elem) {
-    elem.style.display = 'none'
-  })
-}
+    if (window.toast) toast("Account created — please log in.", "success", 1600);
+    window.location.href = "../login/?email=" + encodeURIComponent(emailValue);
+  });
+})();

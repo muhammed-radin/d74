@@ -1,39 +1,36 @@
+"use strict";
+
+/* Card renderer for YouTube search results. */
+
 const d74_structure = {
-  create(data, id) {
-    var snippet = data.snippet;
-    var code = new TagString(`
-<div class="card" id="${id}">
-  <a class="white-link" href="../visit/?id=${data.id.videoId}">
-    <div class="card-date">${dayjs(snippet.publishedAt).fromNow()}</div>
-    <div class="card-img">
-      <img src="${snippet.thumbnails.medium.url}" alt="yt">
+  create(data, id, index = 0) {
+    const esc = window.D74UI ? window.D74UI.escapeHTML : (v) => String(v == null ? "" : v);
+    const snippet = (data && data.snippet) || {};
+    const thumbs = snippet.thumbnails || {};
+    const image = (thumbs.medium || thumbs.high || thumbs.default || {}).url || "";
+    const videoId = (data && data.id && data.id.videoId) || "";
+    const title = snippet.title || "Untitled clip";
+    const published = snippet.publishedAt
+      ? window.dayjs
+        ? window.dayjs(snippet.publishedAt).fromNow()
+        : String(snippet.publishedAt).slice(0, 10)
+      : "Recently";
+
+    return new TagString(`
+<article class="clip-card enter" id="${esc(id)}" style="animation-delay:${Math.min(index * 45, 400)}ms">
+  <a class="clip-link" href="../visit/?id=${encodeURIComponent(videoId)}" aria-label="${esc(title)}">
+    <div class="clip-thumb">
+      <img loading="lazy" src="${esc(image)}" alt="" onerror="this.style.opacity=0">
+      <span class="clip-play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
     </div>
-    <div class="card-grad"></div>
-    <div class="card-title card-title-bottom">${snippet.title}</div>
-    <div class="card-opt-icon" onclick="openOptions('${id + " 2"}')">
-      <ion-icon name="ellipsis-horizontal"></ion-icon>
-    </div>
-    <div class="card-options" id="${id + " 2"}">
-      <div class="card-head">
-        Options
-      </div>
-      <div class="card-body">
-        <p class="card-opt" onclick="redirctTo('../visit/?id=${
-          data.id.videoId
-        }')">
-          View
-        </p>
-        <p class="card-opt">
-          Save
-        </p>
-        <p class="card-opt" onclick="closeOptions('${id + "2"}')">
-          Close
-        </p>
+    <div class="clip-body">
+      <div class="clip-title">${esc(title)}</div>
+      <div class="clip-meta">
+        <span class="clip-channel">D74 Edits</span>
+        <span>${esc(published)}</span>
       </div>
     </div>
   </a>
-</div>
-`);
-    return code;
+</article>`);
   },
 };

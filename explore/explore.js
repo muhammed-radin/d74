@@ -1,114 +1,212 @@
-var pageTkn = false;
-var liveAndHL = null;
+"use strict";
 
-function playLive(url) {
-  if (url) {
-    window.location.href = url;
-  }
-}
+/* ------------------------------------------------------------------
+   Explore feed controller
+------------------------------------------------------------------ */
 
-db.getLiveAndHL(function (xhr = new XMLHttpRequest()) {
-  var res = JSON.parse(xhr.response);
-  liveAndHL = res;
+(function () {
+  const clipsBox = document.getElementById("clipsbox");
+  const exploreBox = document.getElementById("explorebox");
+  const matchesBox = document.getElementById("matchtoday");
+  const channelBox = document.getElementById("channelbox");
+  const loader = document.getElementById("pageLoader");
+  const clipsLoader = document.getElementById("clipsLoader");
+  let pageToken = null;
+  let loadingVideos = false;
+  let pendingLoads = 2;
 
-  const div = document.querySelector("#matchtoday");
-  div.innerHTML = "";
-
-  // const streams = document.getElementById('streams')
-
-  if (res && Array.isArray(res)) {
-    var rs = res;
-    rs.sort((a, b) => {
-      return b.date.localeCompare(a.date);
-    });
-
-    coolLoop(
-      rs.slice(0, 12),
-      function (data, index) {
-        var code = live_card_ui.create(data).parseElement()[0];
-        div.appendChild(code);
-      },
-      0,
-      30
-    ).then(() => {
-      if (document.querySelector(".loader-bg")) {
-        document.querySelector(".loader-bg").style.display = "none";
-      }
-
-      div.appendChild(live_card_ui.createViewMoreCard().parseElement()[0]);
-
-      reloadApiVideo(false, function (res) {
-        addVideosCardUi(res, document.querySelector("#clipsbox"));
-        if (res.nextPageToken) {
-          reloadApiVideo(res.nextPageToken, function (res) {
-            addVideosCardUi(res, document.querySelector("#explorebox"), true);
-          });
-        }
-      });
-      // var ts = res;
-      // var lives = []
-
-      // ts.map((v, i, a) => {
-      //   v.videos.map((vd) => {
-      //     if (vd.title === 'Live Stream') {
-      //       lives.push(v)
-      //     }
-      //   })
-      // })
-
-      // coolLoop(res.slice(15, 40).reverse(), function(data, index) {
-      //   var code = live_card_ui.create(data).parseElement()[0];
-
-      //   streams.appendChild(code);
-      // }, 0, 70).then(() => {
-
-      //   streams.appendChild(live_card_ui.createViewMoreCard().parseElement()[0])
-      // })
-    });
-  }
-});
-
-function reloadApiVideo(pageTkn = pageTkn, then) {
-  db.getYTchannelVideos(function (xhr = new XMLHttpRequest()) {
-    var res = JSON.parse(xhr.response);
-    if (typeof then === "function") then(res);
-  }, pageTkn);
-}
-
-reloadApiVideo(false, function (res) {
-  addVideosCardUi(res, document.querySelector(".body"), true);
-});
-
-function addVideosCardUi(res, rootelem, loadbtn = false) {
-  res.items.forEach(function (data, index) {
-    var id = "ID_10" + index;
-    var code = d74_structure.create(data, id);
-
-    rootelem.appendChild(code.parseElement()[0]);
-  });
-
-  if (res.nextPageToken) {
-    pageTkn = res.nextPageToken;
-    if (loadbtn) {
-      rootelem.innerHTML +=
-        '<button id="q43" class="load-btn" >Load More</button>';
-      document.getElementById("q43").onclick = function () {
-        reloadApiVideo(pageTkn, function (res2) {
-          addVideosCardUi(res2, rootelem, loadbtn);
-          document.getElementById("q43").remove();
-        });
-      };
+  function parse(xhr) {
+    if (!xhr) return null;
+    if (typeof xhr.json === "function") return xhr.json();
+    try {
+      return JSON.parse(xhr.response);
+    } catch (_) {
+      return null;
     }
   }
-}
 
-//reloadVD()
-function openOptions(id) {
-  var elem = document.getElementById(id);
-  elem.style.display = "block";
-}
+  function finishLoad() {
+    if (pendingLoads > 0) pendingLoads -= 1;
+    if (pendingLoads <= 0 && loader) loader.classList.add("is-hidden");
+  }
 
-function closeOptions(id) {
-  var elem = document.getElementById(id);
-  elem.style.display = "none";
-}
+  function emptyState(icon, title, copy) {
+    return (
+      '<div class="empty-state" style="grid-column:1/-1;width:100%">' +
+      '<ion-icon name="' + icon + '"></ion-icon>' +
+      "<h3>" + title + "</h3><p>" + copy + "</p></div>"
+    );
+  }
+
+  function playLive(url) {
+    if (!url) return;
+    try {
+      const parsed = new URL(url, window.location.href);
+      if (!["http:", "https:"].includes(parsed.protocol)) return;
+      window.open(parsed.href, "_blank", "noopener,noreferrer");
+    } catch (_) {}
+  }
+
+  document.addEventListener("click", function (event) {
+    const trigger = event.target.closest("[data-stream-url]");
+    if (trigger) {
+      playLive(trigger.dataset.streamUrl);
+    }
+  });
+
+  /* ---------------------------- matches --------------------------- */
+
+  function loadMatches() {
+    if (!matchesBox) return;
+    db.getLiveAndHL(function (xhr) {
+      const data = parse(xhr);
+      matchesBox.innerHTML = "";
+      if (!Array.isArray(data) || !data.length) {
+        matchesBox.innerHTML = emptyState(
+          "football-outline",
+          "No matches right now",
+          "Check back soon, or open live TV to browse all channels."
+        );
+        finishLoad();
+        return;
+      }
+      const sorted = data
+        .slice()
+        .sort(function (a, b) {
+          return String(b.date || "").localeCompare(String(a.date || ""));
+        })
+        .slice(0, 12);
+
+      sorted.forEach(function (match) {
+        matchesBox.appendChild(live_card_ui.create(match).parseElement()[0]);
+      });
+      matchesBox.appendChild(live_card_ui.createViewMoreCard().parseElement()[0]);
+      finishLoad();
+    });
+  }
+
+  /* ----------------------------- videos --------------------------- */
+
+  function createLoadButton() {
+    if (!clipsLoader) return;
+    clipsLoader.innerHTML =
+      '<button class="btn btn-ghost btn-block" type="button" id="loadMoreBtn">' +
+      '<ion-icon name="add-circle-outline"></ion-icon> Load more clips</button>';
+    const button = document.getElementById("loadMoreBtn");
+    if (button) {
+      button.addEventListener("click", function () {
+        if (!pageToken || loadingVideos) return;
+        button.classList.add("is-loading");
+        button.innerHTML = '<span class="loader-sml"></span> Loading…';
+        loadVideos(pageToken, clipsBox, true);
+      });
+    }
+  }
+
+  function renderVideos(result, root, append) {
+    const data = parse(result);
+    if (!root) return;
+    if (!data || !Array.isArray(data.items) || data.status >= 400) {
+      if (!append) {
+        root.innerHTML = emptyState(
+          "cloud-offline-outline",
+          "Clips are taking a break",
+          "The video service did not respond. Try refreshing in a moment."
+        );
+      }
+      if (window.toast) toast("Could not load clips right now.", "error");
+      return;
+    }
+
+    if (!append) root.innerHTML = "";
+    data.items.forEach(function (item, index) {
+      if (!item || !item.id || !item.id.videoId) return;
+      const id = "clip_" + (item.id.videoId || index) + "_" + index;
+      root.appendChild(d74_structure.create(item, id, index).parseElement()[0]);
+    });
+    pageToken = data.nextPageToken || null;
+    if (!append) createLoadButton();
+    if (!pageToken && clipsLoader) clipsLoader.innerHTML = "";
+  }
+
+  function loadVideos(token, root, append) {
+    if (loadingVideos) return;
+    loadingVideos = true;
+    db.getYTchannelVideos(function (result) {
+      loadingVideos = false;
+      renderVideos(result, root, append);
+      if (!append && root === clipsBox) finishLoad();
+    }, token || false);
+  }
+
+  /* ---------------------------- channels -------------------------- */
+
+  function initials(name) {
+    const parts = String(name || "TV").trim().split(/\s+/);
+    return parts
+      .slice(0, 2)
+      .map(function (part) {
+        return part.charAt(0);
+      })
+      .join("")
+      .toUpperCase();
+  }
+
+  function loadChannels() {
+    if (!channelBox) return;
+    db.channels().then(function (xhr) {
+      const data = parse(xhr);
+      if (!Array.isArray(data) || !data.length) {
+        channelBox.innerHTML = emptyState(
+          "tv-outline",
+          "Channels unavailable",
+          "Live TV is temporarily unavailable."
+        );
+        return;
+      }
+      channelBox.innerHTML = "";
+      data.slice(0, 14).forEach(function (channel, index) {
+        const card = document.createElement("a");
+        card.className = "channel-card enter";
+        card.href = "../livestreams/?id=" + encodeURIComponent(channel.id);
+        card.style.animationDelay = Math.min(index * 40, 360) + "ms";
+        card.innerHTML =
+          '<div class="channel-logo">' +
+          (window.D74UI ? D74UI.escapeHTML(initials(channel.name)) : initials(channel.name)) +
+          "</div>" +
+          '<div class="channel-name">' +
+          (window.D74UI ? D74UI.escapeHTML(channel.name) : channel.name) +
+          "</div>" +
+          '<span class="badge badge-accent">Live</span>';
+        channelBox.appendChild(card);
+      });
+    });
+  }
+
+  /* ----------------------------- search --------------------------- */
+
+  const searchForm = document.getElementById("exploreSearch");
+  if (searchForm) {
+    searchForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      const input = document.getElementById("exploreSearchInput");
+      const query = (input && input.value.trim()) || "";
+      window.location.href = "../search/" + (query ? "?q=" + encodeURIComponent(query) : "");
+    });
+  }
+
+  /* ------------------------------ boot ---------------------------- */
+
+  loadMatches();
+  loadVideos(null, clipsBox, false);
+  loadChannels();
+
+  // A second page populates the "Discover more" grid once the feed is warm.
+  setTimeout(function () {
+    if (pageToken && exploreBox && !exploreBox.children.length) {
+      db.getYTchannelVideos(function (result) {
+        renderVideos(result, exploreBox, false);
+      }, pageToken);
+    }
+  }, 1600);
+})();

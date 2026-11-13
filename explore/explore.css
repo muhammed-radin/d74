@@ -1,222 +1,73 @@
-body {
-  background: var(--sec-bg);
-}
+/* ------------------------------------------------------------------
+   Explore page
+------------------------------------------------------------------ */
 
-.body {
-  width: 100%;
-  min-height: 90vh;
-  overflow: hidden;
-}
-
-.card {
-  background: var(--bg);
-  border-radius: 15px;
-  margin: 0.8rem;
-  margin-top: 0.5rem;
-  padding: 0;
-  padding-bottom: 1.2rem !important;
-  position: relative;
-  min-width: 350px;
-  padding-top: 3px;
-}
-
-.sec-card {
-  background: var(--sec-bg);
-  border-radius: 15px;
-  margin: 0.8rem;
-  margin-top: 2rem;
-  padding: 1rem 0.6rem;
-  padding-bottom: 1.2rem !important;
-  position: relative;
-}
-
-.card-title {
-  font-family: "Alegreya Sans SC", sans-serif !important;
-  margin-left: 5px;
-  font-size: 15px;
-  border-radius: 15px;
-  padding: 3px;
-}
-
-.card-title-bottom {
-  position: absolute;
-  bottom: 8px;
-  left: 4px;
-  z-index: 99;
-}
-
-.card-title small {
-  font-size: 10px;
-  color: var(--sec-color);
-}
-
-.card-date {
-  color: var(--white);
-  position: absolute;
-  right: 10px;
-  top: 5px;
-  font-size: 12px;
-}
-
-.card-opt-icon {
-  position: absolute;
-  left: 10px;
-  top: 3px;
-  font-size: 20px;
-  color: var(--white);
-  display: none;
-}
-
-.card-img,
-.card-img img {
-  width: calc(100% - 5px);
-  margin: 0.2rem;
-  margin-top: 0.1rem;
-  border-radius: 15px;
-  margin-left: 2.5px;
-}
-
-.card::before {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  border-radius: 15px;
-  height: 70%;
-  z-index: 9;
-  background: linear-gradient(to top, var(--bg) 45%, transparent);
-}
-
-.card-options {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 0.7rem;
-  background: var(--bg);
-  border-radius: 8px;
-  box-shadow: 0 0 50px 4000px #33333390;
-  z-index: 999;
-  width: 70%;
-  animation: startfrombottom 0.3s 1;
-  display: none;
-}
-
-.card-head {
-  font-weight: bold;
-  font-size: 12px;
-  margin-left: 0.35rem;
-}
-
-.card-body {
-  font-size: 12px;
-  padding-top: 0.5rem;
-}
-
-.card-opt {
-  padding: 0.3rem;
-}
-
-.active {
-  color: var(--theme-color);
-}
-
-.load-btn {
-  min-width: 200px;
-}
-
-@keyframes showInLeft {
-  0% {
-    transform: translate(-120%);
-  }
-
-  100% {
-    transform: translate(0%);
-  }
-}
-
-.loader-bg {
-  box-shadow: 0 0 2000px 1000px #ffffff50;
-}
-
-@media screen and (min-width: 600px) {
-  .card {
-    width: 280px;
-    height: max-content;
-  }
-
-  .body {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .card-options {
-    width: 290px;
-  }
-}
-
-.google-text {
-  position: fixed;
-  opacity: 0;
-}
-
-.card-board-root {
-  padding: 5px;
-  margin: 5px;
-  margin-bottom: 20px;
-  position: relative;
-  width: calc(100% - 23px);
-}
-
-.card-board-root.mbn,
-.card-board-root.mbn * {
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.card-board-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--sec-color);
-  margin-bottom: 10px;
-}
-
-.card-board-title .right-icons {
-  top: 5px;
-}
-
-.card-board-title .right-icons ion-icon {
-  font-size: 22px;
-  padding: 3px;
-  margin: 1px;
-}
-
-.card-board {
-  display: flex;
-  flex-direction: row;
-  overflow: scroll;
-  max-width: (100% - 5px);
-  width: (100% - 5px) !important;
-}
-
-.tv-box {
-  padding: 8px;
-  margin: 4px;
-  border-radius: 7px;
-  background: var(--bg);
-  text-align: center;
-  font-size: 13.7px;
-  font-family: "Rubik", "Alegreya Sans SC", sans-serif;
+.explore-hero {
   display: flex;
   flex-direction: column;
-  min-width: 100px;
-  max-width: 130px;
+  gap: 22px;
+  padding-top: 16px;
 }
 
-.tv-logo-box {
-  width: 98%;
-  padding: 5px;
+.explore-hero .hero-title {
+  font-size: clamp(2.1rem, 5.4vw, 3.6rem);
+}
+
+.explore-hero .search-bar {
+  margin-top: 4px;
+  width: 100%;
+  max-width: 680px;
+}
+
+.explore-hero .search-bar input {
+  font-size: 0.9rem;
+}
+
+.load-more-wrap {
+  margin-top: 20px;
+}
+
+.clip-link {
+  display: block;
+  height: 100%;
+}
+
+.channel-card {
+  min-height: 152px;
+}
+
+/* Animation used by dynamically injected cards. */
+.enter {
+  animation: card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Old markup safety */
+.live-board-root,
+.card-board-root {
+  width: 100%;
+}
+
+@media (min-width: 880px) {
+  .explore-hero {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 40px;
+  }
+
+  .explore-hero .search-bar {
+    margin-top: 0;
+    max-width: 400px;
+  }
 }

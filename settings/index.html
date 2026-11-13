@@ -1,166 +1,315 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>D74 Edits | Settings</title>
   <link rel="shortcut icon" type="image/x-icon" href="../logo.png">
+  <meta name="description" content="Adjust your D74 Edits theme, account and download preferences.">
+  <meta name="theme-color" content="#08090b">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="../view/app.css">
   <link rel="stylesheet" href="settings.css">
 
-  <script src="../view/alert.js"></script>
-
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-
 </head>
 
-<body>
-  <nav>
-    <div class="title" animation="true">D74 Edits <b>Settings</b></div>
-    <div class="right-icons">
-      <ion-icon name="arrow-forward-outline" id="menuOpener"></ion-icon>
+<body class="dark">
+  <div class="ambient" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../" aria-label="D74 Edits home">
+        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">D74 Edits</span>
+          <span class="brand-sub">Settings</span>
+        </span>
+      </a>
+
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="../explore/" data-nav="explore">Explore</a>
+        <a href="../livestreams/" data-nav="livestreams">Live TV</a>
+        <a href="../search/" data-nav="search">Search</a>
+        <a href="./" data-nav="settings">Settings</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" data-theme-toggle aria-label="Toggle colour theme">
+          <ion-icon name="sunny-outline" data-theme-icon></ion-icon>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="../login/" id="loginLink">Log in</a>
+        <button class="icon-btn" id="drawerOpen" aria-label="Open menu" aria-expanded="false">
+          <ion-icon name="menu-outline"></ion-icon>
+        </button>
+      </div>
     </div>
+  </header>
+
+  <main class="page">
+    <div class="container">
+      <section class="hero settings-hero" data-reveal>
+        <span class="hero-eyebrow">
+          <span class="dot"><ion-icon name="options-outline"></ion-icon></span>
+          Make it yours
+        </span>
+        <h1 class="hero-title">Settings.</h1>
+        <p class="hero-sub">Theme, account and download preferences — saved on this device.</p>
+      </section>
+
+      <div class="settings-grid">
+        <section class="panel settings-card" data-reveal aria-labelledby="appearanceTitle">
+          <h3 id="appearanceTitle">Appearance</h3>
+          <p class="muted">Switch the mood. Changes apply instantly.</p>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>Theme</strong>
+              <span>Background and contrast</span>
+            </div>
+            <div class="setting-control">
+              <select class="select" id="theme" aria-label="Theme">
+                <option value="dark">Stadium dark</option>
+                <option value="light">Daylight</option>
+                <option value="blue">Midnight blue</option>
+                <option value="green">Pitch green</option>
+                <option value="black">OLED black</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>Accent</strong>
+              <span>Highlight colour across the site</span>
+            </div>
+            <div class="setting-control">
+              <div class="swatches" id="swatches" role="group" aria-label="Accent colour">
+                <button class="swatch" type="button" data-accent="#d7ff3f" style="background:#d7ff3f"
+                  aria-label="Lime"></button>
+                <button class="swatch" type="button" data-accent="#3ee6ff" style="background:#3ee6ff"
+                  aria-label="Cyan"></button>
+                <button class="swatch" type="button" data-accent="#8b6bff" style="background:#8b6bff"
+                  aria-label="Violet"></button>
+                <button class="swatch" type="button" data-accent="#ffb454" style="background:#ffb454"
+                  aria-label="Amber"></button>
+                <button class="swatch" type="button" data-accent="#ff6b9d" style="background:#ff6b9d"
+                  aria-label="Rose"></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>Motion</strong>
+              <span>Follows your system reduced-motion setting</span>
+            </div>
+            <div class="setting-control">
+              <span class="badge badge-accent" id="motionState">Full</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel settings-card" data-reveal aria-labelledby="accountTitle">
+          <h3 id="accountTitle">Account</h3>
+          <p class="muted" id="accountSummary">Manage the account on this device.</p>
+
+          <div id="accountGuest" hidden>
+            <div class="account-cta">
+              <div class="account-avatar" aria-hidden="true">
+                <ion-icon name="person-outline"></ion-icon>
+              </div>
+              <div>
+                <strong>You're browsing as a guest</strong>
+                <p class="muted">Create a free account to unlock downloads and keep your settings.</p>
+              </div>
+            </div>
+            <div class="account-actions">
+              <a class="btn btn-primary btn-block" href="../signup/">Create free account</a>
+              <a class="btn btn-ghost btn-block" href="../login/">Log in</a>
+            </div>
+          </div>
+
+          <div id="accountUser" hidden>
+            <div class="account-cta">
+              <div class="account-avatar" id="avatar" aria-hidden="true">D</div>
+              <div>
+                <strong id="accountName">—</strong>
+                <p class="muted" id="accountEmail">—</p>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="meta">
+                <strong>Account ID</strong>
+                <span>Used to identify your account</span>
+              </div>
+              <div class="setting-control">
+                <button class="secret-toggle" type="button" id="revealId">Show</button>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="meta">
+                <strong>Signed up</strong>
+                <span>Date this account was created</span>
+              </div>
+              <div class="setting-control">
+                <span class="setting-value" id="accountDate">—</span>
+              </div>
+            </div>
+
+            <div class="account-actions">
+              <a class="btn btn-ghost btn-block" href="../explore/">Keep watching</a>
+              <button class="btn btn-danger btn-block" type="button" id="logout">Log out</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel settings-card" data-reveal aria-labelledby="downloadTitle">
+          <h3 id="downloadTitle">Downloads</h3>
+          <p class="muted">How clip downloads work.</p>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>Unlock with a password</strong>
+              <span>Each download clip has its own password from the video</span>
+            </div>
+            <div class="setting-control">
+              <span class="badge badge-accent">Active</span>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>Android app</strong>
+              <span>Native download manager</span>
+            </div>
+            <div class="setting-control">
+              <span class="setting-value">Coming soon</span>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>Windows &amp; iOS</strong>
+              <span>Use the website in your browser</span>
+            </div>
+            <div class="setting-control">
+              <span class="setting-value">Unavailable</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel settings-card" data-reveal aria-labelledby="aboutTitle">
+          <h3 id="aboutTitle">About &amp; security</h3>
+          <p class="muted">D74 Edits — free football clips and live TV.</p>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>Passwords</strong>
+              <span>Stored as salted scrypt hashes, never plain text</span>
+            </div>
+            <div class="setting-control">
+              <ion-icon name="shield-checkmark-outline" style="color:var(--accent);font-size:1.2rem"></ion-icon>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>API keys</strong>
+              <span>Kept on the server and never sent to your browser</span>
+            </div>
+            <div class="setting-control">
+              <ion-icon name="lock-closed-outline" style="color:var(--accent);font-size:1.2rem"></ion-icon>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="meta">
+              <strong>Version</strong>
+              <span>2026 redesign</span>
+            </div>
+            <div class="setting-control">
+              <span class="setting-value">v2.0</span>
+            </div>
+          </div>
+
+          <p class="small" style="margin-top:12px;color:var(--muted)">
+            © <span data-year></span> D74 Edits. Built for the love of the game.
+          </p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <nav class="dock" aria-label="Quick navigation">
+    <a class="dock-link" href="../explore/" data-nav="explore">
+      <ion-icon name="compass-outline"></ion-icon>
+      <span>Explore</span>
+    </a>
+    <a class="dock-link" href="../search/" data-nav="search">
+      <ion-icon name="search-outline"></ion-icon>
+      <span>Search</span>
+    </a>
+    <a class="dock-link" href="../livestreams/" data-nav="livestreams">
+      <ion-icon name="tv-outline"></ion-icon>
+      <span>Live</span>
+    </a>
+    <a class="dock-link active" href="./" data-nav="settings">
+      <ion-icon name="settings-outline"></ion-icon>
+      <span>Settings</span>
+    </a>
   </nav>
 
-  <div class="left-bar">
-    <div class="left-bar-close" id="leftBarCloser">
-      <ion-icon name="close-circle-outline"></ion-icon>
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawer-head">
+      <span class="drawer-brand">
+        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">D74 Edits</span>
+          <span class="brand-sub">Settings</span>
+        </span>
+      </span>
+      <button class="icon-btn" id="drawerClose" aria-label="Close menu">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
     </div>
-    <div class="left-box">
-      <div class="link">
-        <ion-icon src="../icons/home-outline.svg"></ion-icon>
-        <div>
-          <p>Explore</p>
-          <div class="small">Explore new video shorts</div>
-        </div>
-      </div>
-      <div class="link" onclick="window.open('https://youtube.com')">
-        <ion-icon src="../icons/settings-2.svg"></ion-icon>
-        <div>
-          <p>Settings</p>
-          <div class="small">Adjust to your own preference</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('https://youtube.com/@d74edits67')">
-        <ion-icon name="notifications-outline"></ion-icon>
-        <div>
-          <p>Subscribe</p>
-          <div class="small">Subscribe now, its free</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('https://youtube.com/@d74edits67')">
-        <ion-icon name="logo-youtube"></ion-icon>
-        <div>
-          <p>YouTube</p>
-          <div class="small">Yes, this channel available in YouTube</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('../login')" id="loginLink">
+    <div class="drawer-links">
+      <a class="drawer-link" href="../explore/" data-nav="explore">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore<small class="sub">Fresh clips & highlights</small></span>
+      </a>
+      <a class="drawer-link" href="../livestreams/" data-nav="livestreams">
+        <ion-icon name="tv-outline"></ion-icon>
+        <span>Live TV<small class="sub">168 channels, 24/7</small></span>
+      </a>
+      <a class="drawer-link" href="../search/" data-nav="search">
+        <ion-icon name="search-outline"></ion-icon>
+        <span>Search<small class="sub">Find any clip fast</small></span>
+      </a>
+      <a class="drawer-link active" href="./" data-nav="settings">
+        <ion-icon name="settings-outline"></ion-icon>
+        <span>Settings<small class="sub">Theme & account</small></span>
+      </a>
+      <a class="drawer-link" href="../login/" data-nav="login" id="drawerLogin">
         <ion-icon name="person-outline"></ion-icon>
-        <div>
-          <p>Log In</p>
-          <div class="small">Login now, now its free</div>
-        </div>
-      </div>
+        <span>Log in<small class="sub">Free account</small></span>
+      </a>
     </div>
-  </div>
+    <div class="drawer-foot">
+      <p>Free football clips and live TV. Built to be fast, responsive and private.</p>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
-  <div class="body">
-    <h3>Appearance</h3>
-    <hr>
-    <div class="proper" onclick="document.getElementById('theme').click()">
-      Theme
-      <div class="right">
-        <select name="theme" id="theme">
-          <option value="light">Light</option>
-          <option value="blue">Blue</option>
-          <option value="dark">Dark</option>
-          <option value="green">Green</option>
-          <option value="black">Black</option>
-        </select>
-      </div>
-    </div>
-    <div class="proper" onclick="document.getElementById('theme-color').click()">
-      Colour
-      <div class="right">
-        <select name="theme" id="theme-color">
-          <option value="#34A262">Green</option>
-          <option value="#A23434">Red</option>
-          <option value="#5985D5">Blue</option>
-          <option value="#D4B94A">Yellow</option>
-          <option value="#CC6418">Orange</option>
-        </select>
-      </div>
-    </div>
-
-    <h3>Account</h3>
-    <hr>
-    <div class="proper" onclick="document.getElementById('theme').click()">
-      Name
-      <div class="right" onclick="if (localStorage.getItem('user')) {this.innerHTML = JSON.parse(localStorage.getItem('user')).name}">
-        <b>Click to show</b>
-      </div>
-    </div>
-    <div class="proper" onclick="document.getElementById('theme-color').click()">
-      Email
-      <div class="right" onclick="if (localStorage.getItem('user')) {this.innerHTML = JSON.parse(localStorage.getItem('user')).email}">
-        <b>Click to show</b>
-      </div>
-    </div>
-    <div class="proper" onclick="document.getElementById('theme-color').click()">
-      Account ID
-      <div class="right" onclick="if (localStorage.getItem('user')) {this.innerHTML = JSON.parse(localStorage.getItem('user')).id}">
-        <b>Click to show</b>
-      </div>
-    </div>
-    <div class="proper" onclick="document.getElementById('theme-color').click()">
-      Logged On
-      <div class="right" onclick="if (localStorage.getItem('user')) {this.innerHTML = JSON.parse(localStorage.getItem('user')).date.slice(0, 15)}">
-        <b>Click to show</b>
-      </div>
-    </div>
-
-    <h3>Download</h3>
-    <hr>
-    <div class="proper" onclick="document.getElementById('theme').click()">
-      Android
-      <div class="right">Coming soon</div>
-    </div>
-    <div class="proper" onclick="document.getElementById('theme-color').click()">
-      Windows or IOS
-      <div class="right">
-        Unavailable
-      </div>
-    </div>
-    
-    
-  </div>
-
-
-
-  <div class="menu">
-    <div class="menu-icon" onclick="redirctTo('../explore')">
-      <ion-icon src="../icons/home-outline.svg"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon src="../icons/search.svg" class="" onclick="redirctTo('../search')"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon src="../icons/tv-outline.svg" class="" onclick="redirctTo('../livestreams')"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon src="../icons/settings-2.svg" class="active"></ion-icon>
-    </div>
-  </div>
-
-  <script>
-    heading = 'D74 Edits <b>Settings</b>'
-  </script>
-    <script src="../view/d74.js"></script>
+  <script src="../view/d74.js"></script>
   <script src="../view/app.js"></script>
+  <script src="../view/ui.js"></script>
   <script src="settings.js"></script>
 </body>
 

@@ -1,89 +1,70 @@
-@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
+/* Live TV page — layout additions on top of the shared design system. */
 
-
-.body {
-  width: 100%;
-  overflow: hidden;
+.live-hero {
+  padding-bottom: 28px;
 }
 
-* {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+.live-side {
+  padding: 18px;
 }
 
-.player-box {
-  background: var(--bg);
-  padding: 10px;
-  margin: 13px;
-  border-radius: 9px;
-  position: relative;
-  max-width: calc(100% - 20px);
+.live-side .panel-head {
+  margin-bottom: 14px;
 }
 
-.player-box iframe {
-  width: 100%;
-  border-radius: 9px;
-  border: 2px solid var(--theme-color);
-  min-height: 35vh;
+.live-search {
+  margin-bottom: 14px;
 }
 
-.list-channels {
-  background: var(--bg);
-  padding: 10px;
-  margin: 13px;
-  border-radius: 9px;
-  margin-bottom: 100px;
+.live-search input {
+  min-width: 0;
 }
 
-.playbox {
-  display: flex;flex-direction:row;
-  position: relative;
-  font-family: "Rubik", "Alegreya Sans SC", "Poppins", sans-serif;
-  padding: 5px;
-  background: var(--sec-bg);
-  padding-left: 8px;
-  margin-bottom: 1px;
-  -webkit-animation: popup_playbox 0.3s 1;
-  -o-animation: popup_playbox 0.3s 1;
-  animation: popup_playbox 0.3s 1;
+.live-side .channel-list {
+  max-height: min(58vh, 620px);
 }
 
-.playbox ion-icon {
-  font-size: 18px;
+.channel-btn span:nth-of-type(2) {
+  flex: 1;
+  min-width: 0;
 }
 
-.playbox:first-child {
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
+.channel-avatar {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-soft);
 }
 
-.playbox:last-child {
-  border-bottom-left-radius: 5px;
-  border-bottom-right-radius: 5px;
+.channel-btn.active .channel-avatar {
+  background: rgba(0, 0, 0, 0.16);
+  border-color: rgba(0, 0, 0, 0.2);
+  color: inherit;
 }
 
-
-.playbox.active {
-  background: var(--theme-color);
-  color: var(--color);
+.channel-btn.active span:nth-of-type(2) {
+  font-weight: 700;
 }
 
-@keyframes popup_playbox {
-  0% {
-    transform: scale(0.7);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+#randomChannel ion-icon {
+  transition: transform 0.3s ease;
 }
 
-@media screen and (min-width: 600px) {
-  .player-box iframe {
-    min-height: 450px;
-    width: 70%;
+#randomChannel:hover ion-icon {
+  transform: rotate(180deg);
+}
+
+@media (min-width: 880px) {
+  .live-side {
+    position: sticky;
+    top: 90px;
   }
 }

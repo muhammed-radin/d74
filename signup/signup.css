@@ -1,84 +1,28 @@
-body {
-  background: url(bg.jpg) no-repeat;
-}
+/* Signup page — small additions to the shared auth layout. */
 
-* {
-  font-family: "Poppins", sans-serif;
-}
-
-.form-center {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  padding: 0.5rem;
-  border-radius: 20px;
-  min-width: 40%;
-  max-width: 45%;
-  max-height: 60%;
-  background: #ffffff;
-}
-
-.form-center .header {
-  text-align: center;
-  margin: 1.4rem;
-}
-
-.form {
-  margin: 0.3rem;
-  display: flex;
-  justify-content: center;
+.auth-brand {
+  display: inline-flex;
   align-items: center;
-  flex-direction: column;
+  gap: 11px;
+  width: fit-content;
 }
 
-input {
-  font-size: 13px;
-  outline: none;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 0.4rem;
-  width: 90%;
-  margin: 0.4rem;
+.auth-brand .brand-name {
+  font-family: "Sora", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-input:focus {
-  border: 2px solid var()
+.auth-card {
+  min-height: 620px;
 }
 
-button {
-  font-size: 13px;
-  outline: none;
-  background: var();
-  color: #fff;
-  border: 1px solid var();
-  border-radius: 5px;
-  padding: 0.4rem !important;
-  width: 95%;
-  width: webkit-fill-available !important;
-  margin: 0.4rem;
-  margin-left: 0;
-  margin-right: 0;
-  margin-top: 0.5rem;
+#submit {
+  margin-top: 4px;
 }
 
-button:focus {
-  opacity: 0.7;
-  transition: 0.5s
-}
-
-@media screen and (max-width: 600px) {
-  .form-center {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    padding: 0.5rem;
-    border-radius: 20px;
-    min-width: 80%;
-    overflow: hidden;
-    max-height: 60%;
-    padding-bottom: 1.4rem;
-    background: #ffffff;
+@media (max-width: 520px) {
+  .auth-card {
+    min-height: 0;
   }
 }

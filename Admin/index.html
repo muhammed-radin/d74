@@ -1,109 +1,133 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>D74 Edits | Admin</title>
   <link rel="shortcut icon" type="image/x-icon" href="../logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="../view/app.css">
   <link rel="stylesheet" href="admin.css">
 
-  <script type="text/javascript" charset="utf-8">
-    if (localStorage.getItem('admin')) {} else {
-      window.location.href = 'admin_login'
-    }
-  </script>
-
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  <script src="../view/alert.js"></script>
 </head>
 
-<body>
-  <nav>
-    <div class="title" animation="true">D74 Edits <b>Admin</b></div>
-    <div class="right-icons">
-      <ion-icon name="options-outline" id="menuOpener"></ion-icon>
-    </div>
-  </nav>
+<body class="dark">
+  <div class="ambient" aria-hidden="true"></div>
 
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="./" aria-label="Admin home">
+        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">D74 Edits</span>
+          <span class="brand-sub">Admin</span>
+        </span>
+      </a>
 
-  <div class="left-bar">
-    <div class="left-bar-close" id="leftBarCloser">
-      <ion-icon name="close-circle-outline"></ion-icon>
-    </div>
-    <div class="left-box" onclick="redirctTo('../explore')">
-      <div class="link">
-        <p>Explore</p>
-      </div>
-      <div class="link" onclick="redirctTo('../../settings')">
-        <p>Settings</p>
-      </div>
-      <div class="link">
-        <p>Create Post</p>
-      </div>
-      <div class="link">
-        <p>YouTube</p>
+      <div class="topbar-actions">
+        <span class="badge badge-accent admin-badge">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+          Secure session
+        </span>
+        <button class="icon-btn" data-theme-toggle aria-label="Toggle colour theme">
+          <ion-icon name="sunny-outline" data-theme-icon></ion-icon>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="../explore/">View site</a>
+        <button class="btn btn-danger btn-sm" type="button" id="adminLogout">Log out</button>
       </div>
     </div>
-  </div>
+  </header>
 
-  <div class="body">
-    <div class="content" onclick="redirctTo('themes')">
-      <div class="center-box">
-        <div class="center-icon">
-          <ion-icon name="brush-outline"></ion-icon>
+  <main class="page">
+    <div class="container">
+      <section class="hero admin-hero" data-reveal>
+        <span class="hero-eyebrow">
+          <span class="dot"><ion-icon name="speedometer-outline"></ion-icon></span>
+          Control room
+        </span>
+        <h1 class="hero-title">Admin dashboard.</h1>
+        <p class="hero-sub">Manage clips, themes and accounts. Every action is authenticated with a signed session token.</p>
+      </section>
+
+      <section class="admin-stats" aria-label="Overview" data-reveal>
+        <div class="panel admin-stat">
+          <span class="stat-label">Clips</span>
+          <strong class="stat-value" id="statVideos">—</strong>
         </div>
-        <div class="center-text">
-          Themes
+        <div class="panel admin-stat">
+          <span class="stat-label">Accounts</span>
+          <strong class="stat-value" id="statAccounts">—</strong>
         </div>
-      </div>
-    </div>
+        <div class="panel admin-stat">
+          <span class="stat-label">Themes</span>
+          <strong class="stat-value" id="statThemes">—</strong>
+        </div>
+        <div class="panel admin-stat">
+          <span class="stat-label">Session</span>
+          <strong class="stat-value" id="statSession">Active</strong>
+        </div>
+      </section>
 
-    <div class="content" onclick="redirctTo('videos')">
-      <div class="center-box">
-        <div class="center-icon">
-          <ion-icon name="videocam-outline"></ion-icon>
+      <section class="section" aria-labelledby="manageTitle">
+        <div class="section-head" data-reveal>
+          <div>
+            <h2 class="section-title" id="manageTitle">Manage</h2>
+            <p class="section-desc">Everything you need to run D74 Edits.</p>
+          </div>
         </div>
-        <div class="center-text">
-          Videos
-        </div>
-      </div>
-    </div>
 
-    <div class="content" onclick="redirctTo('accounts')">
-      <div class="center-box">
-        <div class="center-icon">
-          <ion-icon name="people-outline"></ion-icon>
-        </div>
-        <div class="center-text">
-          Accounts
-        </div>
-      </div>
-    </div>
+        <div class="admin-grid">
+          <a class="admin-tile" href="videos/" data-reveal>
+            <span class="tile-icon"><ion-icon name="videocam-outline"></ion-icon></span>
+            <div>
+              <h3>Videos</h3>
+              <p>Browse the YouTube archive and publish new downloadable clips.</p>
+            </div>
+            <ion-icon class="arrow" name="arrow-forward-outline"></ion-icon>
+          </a>
 
-  </div>
+          <a class="admin-tile" href="accounts/" data-reveal>
+            <span class="tile-icon"><ion-icon name="people-outline"></ion-icon></span>
+            <div>
+              <h3>Accounts</h3>
+              <p>Review members, their signup dates and account status.</p>
+            </div>
+            <ion-icon class="arrow" name="arrow-forward-outline"></ion-icon>
+          </a>
 
-  <!--
-  <div class="block-div" style="display: block; z-index: 999"></div>
-  <div class="form-center" style="z-index: 9999">
-    <div class="header">
-      <h3>D74 Edits</h3>
-      <p class="subtitle">Get Administration</p>
+          <a class="admin-tile" href="themes/" data-reveal>
+            <span class="tile-icon"><ion-icon name="brush-outline"></ion-icon></span>
+            <div>
+              <h3>Themes</h3>
+              <p>Curate the themed collections shown around the site.</p>
+            </div>
+            <ion-icon class="arrow" name="arrow-forward-outline"></ion-icon>
+          </a>
+
+          <a class="admin-tile" href="init/" data-reveal>
+            <span class="tile-icon"><ion-icon name="cloud-upload-outline"></ion-icon></span>
+            <div>
+              <h3>Install a clip</h3>
+              <p>Paste a YouTube ID to create a new downloadable clip entry.</p>
+            </div>
+            <ion-icon class="arrow" name="arrow-forward-outline"></ion-icon>
+          </a>
+        </div>
+      </section>
     </div>
-    <div class="form">
-      <input type="email" placeholder="Username" id="username">
-      <input type="password" placeholder="Password" id="password">
-      <button id="submit" onclick="">Confirm</button>
-    </div>
-  </div>
-  -->
-  
-  <script>heading = "D74 Edits <b>Admin</b>"</script>
+  </main>
+
+  <script src="../view/d74.js"></script>
   <script src="../view/app.js"></script>
-  <script src="../admin_main.js"></script>
+  <script src="../view/ui.js"></script>
+  <script src="admin_main.js"></script>
 </body>
 
 </html>

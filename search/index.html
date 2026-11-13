@@ -1,129 +1,171 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>D74 Edits | Search</title>
+  <title>D74 Edits | Search Clips</title>
   <link rel="shortcut icon" type="image/x-icon" href="../logo.png">
 
+  <meta name="description" content="Search free football clips, players, competitions and highlights on D74 Edits.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#08090b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="../view/app.css">
   <link rel="stylesheet" href="search.css">
-
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
-  <script src="../view/alert.js"></script>
 
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 
-<body>
-  <nav>
-    <!--div class="title" animation="true">D74 Edits</div -->
-    <input type="text" id="searcher" placeholder="Search...">
-    <div class="right-icons">
-      <ion-icon name="menu-outline" id="menuOpener"></ion-icon>
-      <ion-icon name="search-outline"></ion-icon>
+<body class="dark">
+  <div class="ambient" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../" aria-label="D74 Edits home">
+        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">D74 Edits</span>
+          <span class="brand-sub">Search</span>
+        </span>
+      </a>
+
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="../explore/" data-nav="explore">Explore</a>
+        <a href="../livestreams/" data-nav="livestreams">Live TV</a>
+        <a href="./" data-nav="search">Search</a>
+        <a href="../settings/" data-nav="settings">Settings</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" data-theme-toggle aria-label="Toggle colour theme">
+          <ion-icon name="sunny-outline" data-theme-icon></ion-icon>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="../login/" id="loginLink">Log in</a>
+        <button class="icon-btn" id="drawerOpen" aria-label="Open menu" aria-expanded="false">
+          <ion-icon name="menu-outline"></ion-icon>
+        </button>
+      </div>
     </div>
+  </header>
+
+  <main class="page">
+    <div class="container">
+      <section class="hero search-hero">
+        <span class="hero-eyebrow" data-reveal>
+          <span class="dot"><ion-icon name="search-outline"></ion-icon></span>
+          Find anything
+        </span>
+        <h1 class="hero-title" data-reveal>Find your next <em>clip</em>.</h1>
+        <p class="hero-sub" data-reveal>Search by player, club, competition or moment. Results update as you type.</p>
+
+        <form class="search-bar" id="searchForm" role="search" data-reveal>
+          <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+          <input type="search" id="searcher" name="q" placeholder="Try “Messi”, “Premier League” or “goals”…" aria-label="Search clips" autocomplete="off">
+          <button class="btn btn-primary btn-sm" type="submit">Search</button>
+        </form>
+
+        <div class="chips" id="trendingChips" aria-label="Trending searches" data-reveal>
+          <button class="chip" type="button">Eurocup</button>
+          <button class="chip" type="button">Champions League</button>
+          <button class="chip" type="button">Premier League</button>
+          <button class="chip" type="button">Messi</button>
+          <button class="chip" type="button">Ronaldo</button>
+          <button class="chip" type="button">Neymar</button>
+          <button class="chip" type="button">Goals</button>
+          <button class="chip" type="button">Live</button>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="resultsTitle">
+        <div class="section-head" data-reveal>
+          <div>
+            <h2 class="section-title" id="resultsTitle">Results</h2>
+            <p class="section-desc" id="resultCount">Loading the library…</p>
+          </div>
+        </div>
+        <div class="grid" id="results" aria-live="polite"></div>
+        <div class="search-empty" id="searchEmpty" hidden>
+          <div class="empty-state">
+            <ion-icon name="search-outline"></ion-icon>
+            <h3>No clips found</h3>
+            <p>Try a shorter search, a player name or a competition. New clips are added all the time.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="dock" aria-label="Quick navigation">
+    <a class="dock-link" href="../explore/" data-nav="explore">
+      <ion-icon name="compass-outline"></ion-icon>
+      <span>Explore</span>
+    </a>
+    <a class="dock-link active" href="./" data-nav="search">
+      <ion-icon name="search-outline"></ion-icon>
+      <span>Search</span>
+    </a>
+    <a class="dock-link" href="../livestreams/" data-nav="livestreams">
+      <ion-icon name="tv-outline"></ion-icon>
+      <span>Live</span>
+    </a>
+    <a class="dock-link" href="../settings/" data-nav="settings">
+      <ion-icon name="settings-outline"></ion-icon>
+      <span>Settings</span>
+    </a>
   </nav>
 
-  <div class="left-bar">
-    <div class="left-bar-close" id="leftBarCloser">
-      <ion-icon name="close-circle-outline"></ion-icon>
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawer-head">
+      <span class="drawer-brand">
+        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">D74 Edits</span>
+          <span class="brand-sub">Search</span>
+        </span>
+      </span>
+      <button class="icon-btn" id="drawerClose" aria-label="Close menu">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
     </div>
-    <div class="left-box" onclick="redirctTo('../explore')">
-      <div class="link">
-        <ion-icon src="../icons/home-outline.svg"></ion-icon>
-        <div>
-          <p>Explore</p>
-          <div class="small">Explore new video shorts</div>
-        </div>
-      </div>
-      <div class="link" onclick="window.open('https://youtube.com')">
-        <ion-icon src="../icons/settings-2-outline.svg"></ion-icon>
-        <div>
-          <p>Settings</p>
-          <div class="small">Adjust to your own preference</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('https://youtube.com/@d74edits67')">
-        <ion-icon name="notifications-outline"></ion-icon>
-        <div>
-          <p>Subscribe</p>
-          <div class="small">Subscribe now, its free</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('https://youtube.com/@d74edits67')">
-        <ion-icon name="logo-youtube"></ion-icon>
-        <div>
-          <p>YouTube</p>
-          <div class="small">Yes, this channel available in YouTube</div>
-        </div>
-      </div>
-      <div class="link" onclick="redirctTo('../login')" id="loginLink">
+    <div class="drawer-links">
+      <a class="drawer-link" href="../explore/" data-nav="explore">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore<small class="sub">Fresh clips & highlights</small></span>
+      </a>
+      <a class="drawer-link" href="../livestreams/" data-nav="livestreams">
+        <ion-icon name="tv-outline"></ion-icon>
+        <span>Live TV<small class="sub">168 channels, 24/7</small></span>
+      </a>
+      <a class="drawer-link active" href="./" data-nav="search">
+        <ion-icon name="search-outline"></ion-icon>
+        <span>Search<small class="sub">Find any clip fast</small></span>
+      </a>
+      <a class="drawer-link" href="../settings/" data-nav="settings">
+        <ion-icon name="settings-outline"></ion-icon>
+        <span>Settings<small class="sub">Theme & account</small></span>
+      </a>
+      <a class="drawer-link" href="../login/" data-nav="login">
         <ion-icon name="person-outline"></ion-icon>
-        <div>
-          <p>Log In</p>
-          <div class="small">Login now, now its free</div>
-        </div>
-      </div>
+        <span>Log in<small class="sub">Free account</small></span>
+      </a>
     </div>
-  </div>
+    <div class="drawer-foot">
+      <p>Free football clips and live TV. Built to be fast, responsive and private.</p>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
-  <div class="body">
-    <div class="works">
-      <h3>Trending Search</h3>
-      <div class="tags">
-        <div class="tag">Eurocup</div>
-        <div class="tag">cups</div>
-        <div class="tag">leagues</div>
-        <div class="tag">live</div>
-        <div class="tag">free</div>
-        <div class="tag">clips</div>
-        <div class="tag">cr7</div>
-        <div class="tag">messi</div>
-        <div class="tag">cristano ronaldo</div>
-        <div class="tag">neymer</div>
-        <div class="tag">spain</div>
-      </div>
-    </div>
-
-    <div class="works">
-      <h3>Live Streamings</h3>
-      <div class="live-streams">
-
-      </div>
-    </div>
-  </div>
-
-  <!--   <div class="null-search">
-  <img src="undraw_uploading_re_okvh.svg" alt="">
-</div> -->
-
-  <div class="loader-bg">
-    <div class="loader">
-    </div>
-  </div>
-
-
-  <div class="menu">
-    <div class="menu-icon">
-      <ion-icon src="../icons/home-outline.svg" class="" onclick="redirctTo('../explore')"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon name="search" class="active"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon src="../icons/tv-outline.svg" class="" onclick="redirctTo('../livestreams')"></ion-icon>
-    </div>
-    <div class="menu-icon">
-      <ion-icon src="../icons/settings-2-outline.svg" class="" onclick="redirctTo('../settings')"></ion-icon>
-    </div>
+  <div class="loader-bg is-hidden" id="pageLoader" aria-label="Loading">
+    <div class="loader"></div>
   </div>
 
   <script src="../view/d74.js"></script>
   <script src="../view/app.js"></script>
+  <script src="../view/ui.js"></script>
   <script src="card.structure.js"></script>
   <script src="search.js"></script>
 </body>

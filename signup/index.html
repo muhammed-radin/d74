@@ -1,48 +1,131 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>D74 Edits | Sign up</title>
+  <title>D74 Edits | Create account</title>
   <link rel="shortcut icon" type="image/x-icon" href="../logo.png">
+  <meta name="description" content="Create a free D74 Edits account to unlock clip downloads.">
+  <meta name="robots" content="noindex, follow">
+  <meta name="theme-color" content="#08090b">
 
-    <link rel="stylesheet" href="../view/app.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="../view/app.css">
   <link rel="stylesheet" href="signup.css">
 
-  <script src="../view/alert.js"></script>
-
-  <!script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <! /script>
-      <!script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/aes.min.js" integrity="sha512-4b1zfeOuJCy8B/suCMGNcEkMcQkQ+/jQ6HlJIaYVGvg2ZydPvdp7GY0CuRVbNpSxNVFqwTAmls2ftKSkDI9vtA==" crossorigin="anonymous" referrerpolicy="no-referrer">
-        <! /script>
-  
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 
-<body>
-  <div class="form-center">
-    <div class="header">
-      <h3>D74 Edits</h3>
-      <p class="subtitle">Create your account</p>
-    </div>
-    <div class="form">
-      <input type="text" placeholder="Name" id="username">
-      <input type="email" placeholder="Email" id="email">
-      <input type="password" placeholder="Password" id="password">
-      <input type="password" placeholder="Confirm password" id="confPass">
-      <button id="submit">Sign up</button>
-      <p class="subtitle">i have already an account, <a href="../login">Login</a></p>
-    </div>
-  </div>
+<body class="dark">
+  <div class="ambient" aria-hidden="true"></div>
 
-  <div class="block-div"> </div>
-  <div class="center">
-    <div class="main-preload"></div>
-    <p class="loadtitle">Loading...</p>
-  </div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../" aria-label="D74 Edits home">
+        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">D74 Edits</span>
+          <span class="brand-sub">Sign up</span>
+        </span>
+      </a>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" data-theme-toggle aria-label="Toggle colour theme">
+          <ion-icon name="sunny-outline" data-theme-icon></ion-icon>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="../explore/">Browse clips</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-page">
+    <div class="auth-card">
+      <aside class="auth-aside">
+        <a class="auth-brand" href="../">
+          <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
+          <span class="brand-name">D74 Edits</span>
+        </a>
+        <div>
+          <p class="quote">Your front row seat to <em>every big moment</em>.</p>
+          <div class="auth-points" style="margin-top:26px">
+            <div class="auth-point">
+              <span class="tick"><ion-icon name="checkmark-outline"></ion-icon></span>
+              <span>Download clips with your personal passwords</span>
+            </div>
+            <div class="auth-point">
+              <span class="tick"><ion-icon name="checkmark-outline"></ion-icon></span>
+              <span>168 live channels, no subscription</span>
+            </div>
+            <div class="auth-point">
+              <span class="tick"><ion-icon name="checkmark-outline"></ion-icon></span>
+              <span>Your data stays private — passwords are hashed</span>
+            </div>
+          </div>
+        </div>
+        <p class="small" style="color:var(--muted)">Takes less than a minute</p>
+      </aside>
+
+      <section class="auth-main">
+        <div class="auth-head">
+          <h2>Create your account</h2>
+          <p>Free forever. No card required.</p>
+        </div>
+
+        <form class="form" id="signupForm" novalidate>
+          <div class="form-error" id="formError" role="alert"></div>
+
+          <div class="field">
+            <label class="label" for="username">Display name</label>
+            <input class="input" type="text" id="username" name="name" placeholder="Your name" autocomplete="name"
+              maxlength="48" required>
+          </div>
+
+          <div class="field">
+            <label class="label" for="email">Email</label>
+            <input class="input" type="email" id="email" name="email" placeholder="you@example.com"
+              autocomplete="email" required>
+          </div>
+
+          <div class="field">
+            <label class="label" for="password">Password</label>
+            <div class="input-wrap">
+              <input class="input" type="password" id="password" name="password" placeholder="At least 8 characters"
+                autocomplete="new-password" required>
+              <button class="input-toggle" type="button" data-password-toggle="password" aria-label="Show password">
+                <ion-icon name="eye-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="confPass">Confirm password</label>
+            <div class="input-wrap">
+              <input class="input" type="password" id="confPass" name="confirm" placeholder="Repeat your password"
+                autocomplete="new-password" required>
+              <button class="input-toggle" type="button" data-password-toggle="confPass" aria-label="Show password">
+                <ion-icon name="eye-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit" id="submit">
+            Create account
+          </button>
+        </form>
+
+        <p class="auth-foot">
+          Already have an account? <a href="../login/">Log in</a>
+        </p>
+      </section>
+    </div>
+  </main>
 
   <script src="../view/d74.js"></script>
   <script src="../view/app.js"></script>
+  <script src="../view/ui.js"></script>
   <script src="signup.js"></script>
 </body>
 

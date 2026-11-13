@@ -1,108 +1,115 @@
-var user = JSON.parse(localStorage.getItem('user'))
+"use strict";
 
-class UserDataModel {
-  constructor(name, email, id, data) {
-    this.name = name
-    this.email = email
-    this.id = id
-    this.data = data
-    // this.device = navigator.userAgent
-    this.location = window.location.href;
-    this.date = new Date().toString()
-    // this.languages = navigator.languages.join(','),
-    // this.platform = navigator.userAgentData.platform,
-    // this.brandsAndVersion= JSON.stringify(navigator.userAgentData.brands);
-    // if (user.model) this.model = user.model;
-  }
-}
+/* ------------------------------------------------------------------
+   Login controller — credentials are verified by the server.
+------------------------------------------------------------------ */
 
-unload()
-logIt()
+(function () {
+  const form = document.getElementById("loginForm");
+  const email = document.getElementById("email");
+  const password = document.getElementById("password");
+  const submit = document.getElementById("submit");
+  const errorBox = document.getElementById("formError");
 
-function logIt(lg = false) {
-  var user = JSON.parse(localStorage.getItem('user'))
-
-  if (localStorage.getItem('user')) {
-    if (user.name.includes('guest') && user.email.includes('guest')) {
-      if (user.id == undefined) {
-        setText('Updating...')
-        loadit()
-        db.get('account?q=' + decodeURI(JSON.stringify({ name: user.name, email: user.email })), function(xhr) {
-          var res = JSON.parse(xhr.response)
-          if (res.length == 0) {
-            localStorage.removeItem('user')
-          } else {
-            localStorage.setItem('user', JSON.stringify(new UserDataModel(user.name, user.email, res[0]._id, JSON.stringify(res))))
-          }
-          unload()
-          logIt(true)
-        })
-      }
-    } else {
-      redirctTo('../')
+  function parse(xhr) {
+    if (!xhr) return null;
+    if (typeof xhr.json === "function") return xhr.json();
+    try {
+      return JSON.parse(xhr.response);
+    } catch (_) {
+      return null;
     }
   }
 
-  document.getElementById('submit').addEventListener('click', function() {
-    setText('Singing...')
-    loadit()
-    db.get('account?q=' + decodeURI(JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value })), function(xhr) {
-      var res = JSON.parse(xhr.response);
-      if (res.length == 0) {
-        alert('Signing Failed', 'Account not found, some reasons given below, type valid email and password <ul><li>Account Banned</li><li>or Account Deleted</li><li>or Invalid Email & Password</li><li>or Internet connection error</li></ul>')
-      } else {
-        localStorage.setItem('user', JSON.stringify(new UserDataModel(res[0].name, res[0].email, res[0]._id, JSON.stringify(res))))
-        redirctTo('../explore')
-      }
+  function showError(message) {
+    if (!errorBox) return;
+    errorBox.textContent = message;
+    errorBox.classList.add("show");
+  }
 
-      unload()
-    })
-  })
+  function clearError() {
+    if (!errorBox) return;
+    errorBox.classList.remove("show");
+    errorBox.textContent = "";
+  }
 
-  var params = location.search.replace('?', '');
-  var paramsString = '{"' + params.replaceAll("&", '","').replaceAll('=', '":"') + '"}';
-  if (params == '') {} else {
-    var objectParams = JSON.parse(paramsString);
-    objectParams = objectParams
-    if (objectParams.email == undefined || objectParams.password == undefined) {
+  function isGuest(user) {
+    return (
+      !user ||
+      user.guest === true ||
+      String(user.email || "").includes("guest.local")
+    );
+  }
 
-    } else {
-      setText('Singing...')
-      loadit()
-      db.get('account?q=' + decodeURI(JSON.stringify({ email: objectParams.email, password: objectParams.password })), function(xhr) {
-        var res = JSON.parse(xhr.response);
-        if (res.length == 0) {
-          alert('Signing Failed', 'Account not found, some reasons given below, type valid email and password <ul><li>Account Banned</li><li>or Account Deleted</li><li>or Invalid Email & Password</li><li>or Internet connection error</li></ul>')
-        } else {
-          localStorage.setItem('user', JSON.stringify(new UserDataModel(res[0].name, res[0].email, res[0]._id, JSON.stringify(res))))
-          redirctTo(objectParams.url == undefined ? '../explore' : objectParams.url)
-        }
-        unload()
-      })
-
+  function nextUrl() {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (!next) return "../explore/";
+    try {
+      const target = new URL(next, window.location.href);
+      if (target.origin !== window.location.origin) return "../explore/";
+      if (target.pathname.startsWith("/login")) return "../explore/";
+      return target.pathname + target.search + target.hash;
+    } catch (_) {
+      return "../explore/";
     }
   }
 
-}
+  function loading(on) {
+    if (!submit) return;
+    submit.disabled = on;
+    submit.classList.toggle("is-loading", on);
+    submit.innerHTML = on
+      ? '<span class="loader-sml"></span> Logging in…'
+      : "Log in";
+  }
 
-function setText(txt) {
-  document.querySelector('.loadtitle').innerHTML = txt
-}
+  // Already signed in? Skip the form.
+  let existing = null;
+  try {
+    existing = JSON.parse(localStorage.getItem("user") || "null");
+  } catch (_) {}
+  if (existing && !isGuest(existing)) {
+    window.location.replace(nextUrl());
+    return;
+  }
 
-document.querySelector('.block-div').style.zIndex = '9999';
+  const preset = new URLSearchParams(window.location.search).get("email");
+  if (preset && email) email.value = preset;
 
-function loadit() {
-  document.querySelector('.block-div').style.display = 'block';
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    clearError();
 
-  document.querySelectorAll('.center *').forEach(function(elem) {
-    elem.style.display = 'block'
-  })
-}
+    const emailValue = email.value.trim().toLowerCase();
+    const passwordValue = password.value;
 
-function unload() {
-  document.querySelector('.block-div').style.display = 'none';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailValue)) {
+      return showError("Please enter a valid email address.");
+    }
+    if (!passwordValue) {
+      return showError("Please enter your password.");
+    }
 
-  document.querySelectorAll('.center *').forEach(function(elem) {
-    elem.style.display = 'none'
-  })
-}
+    loading(true);
+    const xhr = await db.login(emailValue, passwordValue);
+    loading(false);
+    const data = parse(xhr);
+
+    if (xhr.status === 200 && data && data.user) {
+      try {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      } catch (_) {}
+      if (window.toast) toast("Welcome back, " + (data.user.name || "friend") + "!", "success", 1500);
+      window.location.href = nextUrl();
+      return;
+    }
+
+    if (xhr.status === 0) {
+      return showError("Network unavailable. Check your connection and try again.");
+    }
+    if (xhr.status === 429) {
+      return showError("Too many attempts. Please wait a few minutes.");
+    }
+    showError((data && data.error) || "Invalid email or password.");
+  });
+})();

@@ -1,0 +1,23 @@
+# Secrets — never commit these
+.env
+.env.*
+!.env.example
+
+# Server data that contains private stream/DRM configuration
+server/data/channels.json
+
+# Dependencies / tooling
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# Local build output
+dist/

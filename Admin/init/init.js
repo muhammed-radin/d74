@@ -1,66 +1,79 @@
-var params = location.search.replace('?', '');
-var paramsString = '{"' + params.replaceAll("&", '","').replaceAll('=', '":"') + '"}';
-var sid = ''
+"use strict";
 
-if (params == '') {
-  alert("File Not Found", "sorry, this id not found", function() {
-    window.location.href = '../'
-  })
-  window.location.href = '../'
-} else {
-  var objectParams = JSON.parse(paramsString);
-  objectParams = objectParams
+/* ------------------------------------------------------------------
+   Admin clip installer — metadata is fetched through the server proxy.
+------------------------------------------------------------------ */
 
-  if (objectParams.id == undefined) {
+(function () {
+  const ytId = new URLSearchParams(window.location.search).get("id") || "";
+  const sub = document.getElementById("sub");
+  const progress = document.getElementById("load");
+  const center = document.querySelector(".center");
 
-  } else {
-    var ytId = objectParams.id
-
-    var sub = document.getElementById('sub')
-    sub.innerHTML = 'Getting...'
-
-    var loader = document.getElementById('load')
-
-    const data = null;
-    const xhr = new XMLHttpRequest();
-    xhr.withCredentials = false;
-    xhr.addEventListener('readystatechange', function() {
-      if (this.readyState === this.DONE) {
-        if (xhr.status != 200) {
-          sub.innerHTML = 'ERROR: ' + this.status + ' -- ' + this.statusText
-          load.value = 0
-        } else {
-          sub.innerHTML = 'Installing...'
-          load.value = 50
-          
-          var data = JSON.parse(xhr.response).items[0]
-          var snippet = data.snippet
-          
-
-          db.push('videos', JSON.stringify({
-            thumb: snippet.thumbnails.medium.url,
-            date: snippet.publishedAt,
-            ytid: ytId,
-            pw: 'd4f2cwyw7',
-            description: snippet.localized.description.slice(0, 200),
-            url: 'https://youtube.com/watch?v=' + ytId,
-            title: snippet.title,
-          }), function (xhr2 = new XMLHttpRequest()){
-            console.log(xhr2)
-            if (xhr2.status != 201) {
-              sub.innerHTML = 'Server Upload Failed '+xhr2.status
-            } else {
-              sub.innerHTML = 'Successfully Installed'
-              loader.value = 100
-              document.querySelector('.center').innerHTML += 'Go To Editor'.link('../edit_video/?id='+ytId)
-            }
-          })
-        }
-      }
-    });
-    xhr.open('GET', 'https://youtube-v31.p.rapidapi.com/videos?part=contentDetails%2Csnippet%2Cstatistics&id='+ytId);
-    xhr.setRequestHeader('X-RapidAPI-Key', '786ab693aamsh13b490be165befdp1ebb1bjsn20906d36a500');
-    xhr.setRequestHeader('X-RapidAPI-Host', 'youtube-v31.p.rapidapi.com');
-    xhr.send(data);
+  function setStatus(text, value) {
+    if (sub) sub.textContent = text;
+    if (progress && typeof value === "number") progress.value = value;
   }
-}
+
+  if (!/^[A-Za-z0-9_-]{6,20}$/.test(ytId)) {
+    setStatus("No valid video id was provided.", 0);
+    if (center) {
+      const link = document.createElement("a");
+      link.className = "btn btn-ghost btn-sm";
+      link.href = "../videos/";
+      link.textContent = "Back to videos";
+      link.style.marginTop = "14px";
+      center.appendChild(link);
+    }
+    return;
+  }
+
+  (async function install() {
+    setStatus("Getting video details…", 10);
+    const result = await db.getVideo(ytId);
+    let data = null;
+    try {
+      data = typeof result.json === "function" ? result.json() : JSON.parse(result.response);
+    } catch (_) {}
+
+    const item = data && Array.isArray(data.items) ? data.items[0] : null;
+    if (!item || !item.snippet) {
+      setStatus("Could not load this video from YouTube. Check the id and try again.", 0);
+      return;
+    }
+
+    const snippet = item.snippet;
+    const thumb =
+      (snippet.thumbnails && (snippet.thumbnails.medium || snippet.thumbnails.high) || {}).url || "";
+    const description = String(
+      (snippet.localized && snippet.localized.description) || snippet.description || ""
+    ).slice(0, 200);
+
+    setStatus("Installing…", 50);
+
+    const created = await db.push("videos", {
+      thumb: thumb,
+      date: snippet.publishedAt,
+      ytid: ytId,
+      pw: "d4f2cwyw7",
+      description: description,
+      url: "https://youtube.com/watch?v=" + ytId,
+      title: snippet.title,
+    });
+
+    if (created.status !== 201) {
+      setStatus("Upload failed (" + created.status + "). Please try again.", 50);
+      return;
+    }
+
+    setStatus("Successfully installed.", 100);
+    if (center) {
+      const link = document.createElement("a");
+      link.className = "btn btn-primary btn-sm";
+      link.href = "../edit_video/?id=" + encodeURIComponent(ytId);
+      link.textContent = "Open editor";
+      link.style.marginTop = "14px";
+      center.appendChild(link);
+    }
+  })();
+})();

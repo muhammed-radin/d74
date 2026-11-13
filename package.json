@@ -1,0 +1,15 @@
+{
+  "name": "d74-edits",
+  "version": "1.0.0",
+  "private": true,
+  "description": "D74 Edits — free football clips & live TV. Secure server + modern front-end.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

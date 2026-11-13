@@ -1,33 +1,35 @@
+"use strict";
+
+/* Card renderer for the search page. */
+
 const search_page_card = {
-  create(data, id){
-    var snippet = data
-    var code = new TagString(`<div class="card" id="${id}" >
-                <div class="card-date">${dayjs(snippet.date).fromNow()}</div>
-                <div class="card-img" onclick="redirctTo('../visit/?id=${data.ytid}')">
-                  <img src="${snippet.thumb}" alt="yt">
-                </div>
-                <div class="card-title" onclick="redirctTo('../visit/?id=${data.ytid}')">${snippet.title}</div>
-                <button class="card-opt-icon" onclick="openOptions('${id+"2"}')">Actions</button>
-                <!--div class="card-opt-icon">
-                  <ion-icon name="ellipsis-horizontal"></ion-icon>
-                </div-->
-                <div class="card-options" id="${id+"2"}">
-                  <div class="card-head">
-                    Options
-                  </div>
-                  <div class="card-body">
-                    <p class="card-opt" onclick="redirctTo('../visit/?id=${data.ytid}')">
-                      View
-                    </p>
-                    <p class="card-opt">
-                      Save
-                    </p>
-                    <p class="card-opt" onclick="closeOptions('${id+'2'}')">
-                      Close
-                    </p>
-                  </div>
-              </div>
-          `);
-    return code
-  }
-}
+  create(data, id, index = 0) {
+    const esc = window.D74UI ? window.D74UI.escapeHTML : (v) => String(v == null ? "" : v);
+    const title = (data && data.title) || "Untitled clip";
+    const thumb = (data && data.thumb) || "";
+    const ytid = (data && data.ytid) || "";
+    const date = data && data.date
+      ? window.dayjs
+        ? window.dayjs(data.date).fromNow()
+        : String(data.date).slice(0, 10)
+      : "";
+
+    return new TagString(`
+<article class="clip-card enter" id="${esc(id)}" style="animation-delay:${Math.min(index * 40, 360)}ms">
+  <a class="clip-link" href="../visit/?id=${encodeURIComponent(ytid)}" aria-label="${esc(title)}">
+    <div class="clip-thumb">
+      <img loading="lazy" src="${esc(thumb)}" alt="" onerror="this.style.opacity=0">
+      <span class="clip-play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
+      ${date ? `<span class="clip-duration">${esc(date)}</span>` : ""}
+    </div>
+    <div class="clip-body">
+      <div class="clip-title">${esc(title)}</div>
+      <div class="clip-meta">
+        <span class="clip-channel">D74 Edits</span>
+        <span>${esc((data && data.tags && data.tags[0]) || "Football")}</span>
+      </div>
+    </div>
+  </a>
+</article>`);
+  },
+};

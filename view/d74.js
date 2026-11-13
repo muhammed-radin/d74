@@ -1,381 +1,316 @@
-const db = {
-  qC4dK: "64a3b47b86d8c5956ded8f77",
-  Coll: class Coll {
+"use strict";
+
+/* ------------------------------------------------------------------
+   D74 Edits — data client
+   All privileged calls go through the local server proxy; no API keys
+   are ever shipped to the browser.
+
+   The client talks to the same origin by default. When the static
+   pages are opened through a separate preview server (Live Server,
+   Codespaces, etc.) it automatically retries against the Node app on
+   port 3000 and tells the user if neither can be reached.
+------------------------------------------------------------------ */
+
+(function (global) {
+  const TOKEN_KEY = "adminToken";
+  const META = document.querySelector('meta[name="d74-api-base"]');
+  const CONFIGURED_BASE = String(
+    global.D74_API_BASE || (META && META.content) || ""
+  ).replace(/\/+$/, "");
+
+  let apiBase = CONFIGURED_BASE;
+  let fallbackAttempted = false;
+  let warned = false;
+
+  function adminToken() {
+    try {
+      return localStorage.getItem(TOKEN_KEY) || "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function pseudoXhr(status, data) {
+    const text = typeof data === "string" ? data : JSON.stringify(data);
+    return {
+      status: status,
+      readyState: 4,
+      response: text,
+      responseText: text,
+      ok: status >= 200 && status < 300,
+      json() {
+        try {
+          return JSON.parse(text);
+        } catch (_) {
+          return null;
+        }
+      },
+    };
+  }
+
+  /* Work out where the Node backend lives when this page is served by
+     a different dev/preview server. Handles localhost and the common
+     port-forwarded hosts used by Codespaces and Gitpod. */
+  function devApiBase() {
+    const protocol = global.location.protocol;
+    const hostname = global.location.hostname;
+
+    if (protocol === "file:") return "http://localhost:3000";
+
+    const codespace = hostname.match(
+      /^(.*)-(\d+)\.(app\.github\.dev|githubpreview\.dev)$/
+    );
+    if (codespace) {
+      return protocol + "//" + codespace[1] + "-3000." + codespace[3];
+    }
+
+    if (hostname.endsWith(".gitpod.io")) {
+      return protocol + "//3000-" + hostname;
+    }
+
+    return protocol + "//" + hostname + ":3000";
+  }
+
+  function showApiWarning() {
+    if (warned || !/^https?:$/.test(global.location.protocol)) return;
+    if (document.querySelector(".api-warning")) return;
+    warned = true;
+
+    const box = document.createElement("div");
+    box.className = "api-warning";
+    box.setAttribute("role", "status");
+    box.innerHTML =
+      "<div><strong>API offline</strong><p>Start the site with " +
+      "<code>node server.js</code> so <code>/api</code> can respond. " +
+      "If you use a separate dev server, the client retries the Node app " +
+      "on port 3000 automatically.</p></div>" +
+      '<button type="button" aria-label="Dismiss">×</button>';
+    box.querySelector("button").addEventListener("click", function () {
+      box.remove();
+    });
+    document.body.appendChild(box);
+  }
+
+  async function fetchOnce(path, headers, init, base) {
+    let response;
+    try {
+      response = await fetch(base + path, init);
+    } catch (_) {
+      return { response: null, data: { error: "Network unavailable." }, json: false };
+    }
+
+    const text = await response.text();
+    let data;
+    let json = false;
+    try {
+      data = text ? JSON.parse(text) : {};
+      json = true;
+    } catch (_) {
+      data = text;
+    }
+    return { response: response, data: data, json: json };
+  }
+
+  async function request(path, options = {}) {
+    const headers = Object.assign(
+      { Accept: "application/json" },
+      options.body ? { "Content-Type": "application/json" } : {},
+      options.headers || {}
+    );
+    const token = adminToken();
+    if (token && options.admin !== false) {
+      headers.Authorization = "Bearer " + token;
+    }
+
+    const init = {
+      method: options.method || "GET",
+      headers: headers,
+      body: options.body,
+      credentials: "same-origin",
+      cache: "no-store",
+    };
+
+    let attempt = await fetchOnce(path, headers, init, apiBase);
+
+    /* A static preview server answers /api/* with its own 404 page (or
+       its HTML shell). Retry once against the Node app on port 3000. */
+    const looksStatic = !attempt.response || !attempt.json;
+    if (looksStatic && !CONFIGURED_BASE && !fallbackAttempted) {
+      fallbackAttempted = true;
+      const fallback = devApiBase();
+      if (fallback && fallback !== global.location.origin && fallback !== apiBase) {
+        apiBase = fallback;
+        attempt = await fetchOnce(path, headers, init, apiBase);
+      }
+    }
+
+    if (!attempt.response || !attempt.json) {
+      showApiWarning();
+    }
+
+    const status = attempt.response ? attempt.response.status : 0;
+    return pseudoXhr(status, attempt.data);
+  }
+
+  function normalizeCollection(collection) {
+    if (collection && collection.collection) {
+      const query = collection.queryObj;
+      let path = collection.collection;
+      if (query && Object.keys(query).length) {
+        path += "?q=" + encodeURIComponent(JSON.stringify(query));
+      }
+      return path;
+    }
+    return String(collection || "");
+  }
+
+  function normalizeBody(data) {
+    if (data === undefined || data === null) return undefined;
+    if (typeof data === "string") return data;
+    return JSON.stringify(data);
+  }
+
+  class Coll {
     constructor(collection, queryObj) {
       this.collection = collection;
-      this.queryObj = queryObj;
+      this.queryObj = queryObj || {};
     }
     hasQuery() {
-      return this.queryObj && Object.keys(this.queryObj).length > 0;
+      return Object.keys(this.queryObj).length > 0;
     }
-
     toQURL() {
-      var str = this.collection;
+      let value = this.collection;
       if (this.hasQuery()) {
-        str += "?q=" + decodeURI(JSON.stringify(this.queryObj));
+        value += "?q=" + encodeURIComponent(JSON.stringify(this.queryObj));
       }
-      return str;
+      return value;
     }
+  }
 
-    QforFB(operator = "==", i = 0) {
-      var x = Object.keys(this.queryObj)[i];
-      var y = operator;
-      var z = this.queryObj[x];
-      return [x, y, z];
-    }
-  },
-  fbConfig: {
-    apiKey: "AIzaSyDVkWn_J2dQIiOvxPvoa9g1TOS6h69y_gY",
-    authDomain: "d74-2024.firebaseapp.com",
-    projectId: "d74-2024",
-    storageBucket: "d74-2024.appspot.com",
-    messagingSenderId: "438339741597",
-    appId: "1:438339741597:web:9b4de7f44c3ace95af7174",
-    measurementId: "G-QRPWP8E6K3",
-    uid: "AIzaSyDVkWn_J2dQIiOvxPvoa9g1TOS6h69y_gY",
-  },
-  fdb: null,
-  isInited: false,
-  sdk: {},
-  fbApp: null,
-  config() {
-    return new Promise((resolve, reject) => {
-      var self = this;
-      if (this.fdb == null || !this.isInited) {
-        var script = document.createElement("script");
-        script.type = "module";
-        script.textContent = `import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js"
-import * as fbfs from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+  const db = {
+    Coll: Coll,
+    isInited: true,
+    adminToken: adminToken,
 
-if (db && db.sdk){
-  db.sdk = fbfs;
-  const appfb = initializeApp(db.fbConfig);
-  db.fdb = fbfs.getFirestore(appfb);
-  db.fbApp = appfb;
-  }`;
-
-        //document.head.onchange = function () {
-        setTimeout(function () {
-          self.isInited = true;
-          resolve();
-        }, 2000);
-        //};
-        document.head.appendChild(script);
-      } else {
-        reject();
-      }
-    });
-  },
-
-  getFDBDocByQueries(col) {
-    return new Promise((resolve, reject) => {
-      if (col && col.collection) {
-        const returnData = [];
-
-        function requestForDoc(collection) {
-          return new Promise((res, rej) => {
-            db.sdk
-              .getDocs(collection)
-              .then((snapshot) => {
-                var status = 200;
-                var data = [];
-
-                snapshot.forEach(function (e) {
-                  var dt = e.data();
-                  dt._id = e.id;
-                  data.push(dt);
-                });
-
-                if (data.length == 0) {
-                  status = 100;
-                  console.log("status 100...");
-                  rej(status);
-                }
-
-                res(data);
-              })
-              .catch((err) => {
-                console.warn();
-                rej(404);
-              });
-          });
-        }
-
-        var collection = db.sdk.collection(db.fdb, col.collection);
-        if (col.hasQuery()) {
-          var obj = col.queryObj;
-          var keys = Object.keys(obj);
-          var whs = [];
-
-          keys.forEach(function (key, index) {
-            let where = db.sdk.where(key, "==", obj[key]);
-            whs.push(where);
-          });
-
-          console.log("whs", whs);
-
-          requestForDoc(db.sdk.query(collection, ...whs))
-            .then(function (data) {
-              console.log("the data", data);
-              returnData.push(data);
-              //if ((keys.length - 1) == index) {
-              resolve([returnData[0]]);
-              console.log("RTD", returnData);
-              //}
+    setAdminToken(token, user) {
+      try {
+        if (token) {
+          localStorage.setItem(TOKEN_KEY, token);
+          localStorage.setItem(
+            "admin",
+            JSON.stringify({
+              name: (user && user.name) || "admin",
+              date: Date.now(),
+              expaire: "-1",
             })
-            .catch((err) => reject(err));
-        } else {
-          requestForDoc(collection)
-            .then((data) => {
-              resolve(data);
-            })
-            .catch((err) => reject(err));
-        }
-      }
-    });
-  },
-  async apiToggler(status, as1, as2, typeCode = 0) {
-    switch (typeCode) {
-      case 0:
-        as1()
-          .then(function (status) {
-            console.log("as1 getted..", status);
-          })
-          .catch(function () {
-            console.log("catched...");
-            as2();
-          });
-        break;
-      case 1:
-        as1();
-        break;
-      case 2:
-        as2();
-        break;
-      case 3:
-        as1().then(() => {
-          as2();
-        });
-        break;
-    }
-  },
-  push(collection, data = {}, onfinish = function () {}) {
-    if (!collection instanceof db.Coll || !collection.collection)
-      collection = new db.Coll(collection);
-    this.config().then(() => {
-      this.apiToggler(
-        201,
-        function () {
-          return new Promise((resolve, reject) => {
-            db.sdk
-              .setDoc(
-                db.sdk.doc(
-                  db.fdb,
-                  collection.collection,
-                  "FBD_Atqva7qb" +
-                    Math.floor(Math.random() * 999) +
-                    "Fayqb" +
-                    Math.floor(Math.random() * 999999)
-                ),
-                JSON.parse(data)
-              )
-              .then(() => {
-                onfinish({
-                  status: 201,
-                });
-                resolve(201);
-                console.log("dt");
-              })
-              .catch((err) => {
-                reject(404);
-              });
-          });
-        },
-        function () {
-          return new Promise((resolve, reject) => {
-            var xhr = new XMLHttpRequest();
-            xhr.withCredentials = false;
-
-            xhr.addEventListener("readystatechange", function () {
-              if (this.readyState === 4) {
-                onfinish(this);
-                resolve(xhr.status);
-              }
-            });
-
-            xhr.open(
-              "POST",
-              "https://d74edits-fce6.restdb.io/rest/" + collection.toQURL()
-            );
-            xhr.setRequestHeader("content-type", "application/json");
-            xhr.setRequestHeader("x-apikey", this.qC4dK);
-            xhr.setRequestHeader("cache-control", "no-cache");
-
-            xhr.send(data);
-          });
-        }
-      );
-    });
-  },
-  put(collection, data = {}, onfinish = function () {}) {
-    if (!collection instanceof db.Coll || !collection.collection)
-      collection = new db.Coll(collection);
-    this.config().then(() => {
-      this.apiToggler(
-        200,
-        function () {
-          return new Promise((resolve, reject) => {
-            db.sdk
-              .setDoc(
-                db.sdk.doc(db.fdb, collection.collection),
-                JSON.parse(data)
-              )
-              .then(() => {
-                onfinish({
-                  status: 200,
-                });
-                resolve(200);
-                console.log("dtPut");
-              })
-              .catch((err) => reject(404));
-          });
-        },
-        function () {
-          return new Promise((resolve, reject) => {
-            var xhr = new XMLHttpRequest();
-            xhr.withCredentials = false;
-
-            xhr.addEventListener("readystatechange", function () {
-              if (this.readyState === 4) {
-                onfinish(this);
-                resolve(this);
-              }
-            });
-
-            xhr.open(
-              "PUT",
-              "https://d74edits-fce6.restdb.io/rest/" + collection.toQURL()
-            );
-            xhr.setRequestHeader("content-type", "application/json");
-            xhr.setRequestHeader("x-apikey", this.qC4dK);
-            xhr.setRequestHeader("cache-control", "no-cache");
-
-            xhr.send(data);
-          });
-        }
-      );
-    });
-  },
-  get(collection, finish, typeCode = 0) {
-    if (!collection instanceof db.Coll || !collection.collection)
-      collection = new db.Coll(collection);
-    this.config().then(() => {
-      this.apiToggler(
-        200,
-        function () {
-          return new Promise((resolve, reject) => {
-            var status = 200;
-            db.getFDBDocByQueries(collection)
-              .then((data) => {
-                console.log("getting collection", data);
-
-                finish({
-                  status: status,
-                  response: JSON.stringify(data),
-                });
-                console.log("dt5");
-              })
-              .catch((err) => {
-                console.log(err);
-                reject(404);
-              });
-          });
-        },
-        function () {
-          console.log(collection.toQURL());
-
-          var data = null;
-
-          var xhr = new XMLHttpRequest();
-          xhr.withCredentials = false;
-
-          xhr.addEventListener("readystatechange", function () {
-            if (this.readyState === 4) {
-              console.log("Done Request");
-              console.log(xhr.status);
-              if (xhr.status == 0) {
-                alert("error");
-              }
-              finish(xhr);
-            }
-          });
-
-          xhr.open(
-            "GET",
-            "https://d74edits-fce6.restdb.io/rest/" + collection.toQURL()
           );
-          xhr.setRequestHeader("content-type", "application/json");
-          xhr.setRequestHeader("x-apikey", db.qC4dK);
-          xhr.setRequestHeader("cache-control", "no-cache");
-
-          xhr.send(data);
-        },
-        typeCode
-      );
-    });
-  },
-  getYTchannelVideos(onfinish, pageTkn = false) {
-    const data = null;
-
-    const xhr = new XMLHttpRequest();
-    xhr.withCredentials = false;
-
-    xhr.addEventListener("readystatechange", function () {
-      if (this.readyState === this.DONE) {
-        onfinish(xhr);
-
-        if (this.status == 0) {
-          alert("failed to load!");
+        } else {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem("admin");
         }
-      }
-    });
+      } catch (_) {}
+    },
 
-    xhr.open(
-      "GET",
-      "https://youtube-v31.p.rapidapi.com/search?channelId=UCFodctpE1wtpFhWw716uCgg&part=snippet%2Cid&order=date&maxResults=15" +
-        (pageTkn == false ? "" : "&pageToken=" + pageTkn)
-    );
-    xhr.setRequestHeader(
-      "X-RapidAPI-Key",
-      "786ab693aamsh13b490be165befdp1ebb1bjsn20906d36a500"
-    );
-    xhr.setRequestHeader("X-RapidAPI-Host", "youtube-v31.p.rapidapi.com");
+    async get(collection, finish, typeCode = 0) {
+      const result = await request("/api/db/" + normalizeCollection(collection));
+      if (typeof finish === "function") finish(result);
+      return result;
+    },
 
-    xhr.send(data);
-  },
-  getLiveAndHL(callback) {
-    const data = null;
+    async post(collection, data, finish) {
+      const result = await request("/api/db/" + normalizeCollection(collection), {
+        method: "POST",
+        body: normalizeBody(data),
+      });
+      if (typeof finish === "function") finish(result);
+      return result;
+    },
 
-    const xhr = new XMLHttpRequest();
-    xhr.withCredentials = false;
+    async push(collection, data, finish) {
+      return this.post(collection, data, finish);
+    },
 
-    xhr.addEventListener("readystatechange", function () {
-      if (this.readyState === this.DONE) {
-        if (typeof callback == "function") callback(xhr);
-      }
-    });
+    async put(collection, data, finish) {
+      const result = await request("/api/db/" + normalizeCollection(collection), {
+        method: "PUT",
+        body: normalizeBody(data),
+      });
+      if (typeof finish === "function") finish(result);
+      return result;
+    },
 
-    xhr.open("GET", "https://free-football-soccer-videos.p.rapidapi.com");
-    xhr.setRequestHeader(
-      "x-rapidapi-key",
-      "786ab693aamsh13b490be165befdp1ebb1bjsn20906d36a500"
-    );
-    xhr.setRequestHeader(
-      "x-rapidapi-host",
-      "free-football-soccer-videos.p.rapidapi.com"
-    );
+    async remove(collection, finish) {
+      const result = await request("/api/db/" + normalizeCollection(collection), {
+        method: "DELETE",
+      });
+      if (typeof finish === "function") finish(result);
+      return result;
+    },
 
-    xhr.send(data);
-  },
-};
+    getYTchannelVideos(onfinish, pageTkn = false) {
+      const query = pageTkn ? "?pageToken=" + encodeURIComponent(pageTkn) : "";
+      request("/api/youtube/search" + query).then(function (result) {
+        if (typeof onfinish === "function") onfinish(result);
+      });
+    },
+
+    getLiveAndHL(callback) {
+      request("/api/football").then(function (result) {
+        if (typeof callback === "function") callback(result);
+      });
+    },
+
+    getVideo(id) {
+      return request("/api/youtube/videos?id=" + encodeURIComponent(id));
+    },
+
+    unlockClip(id, password) {
+      return request("/api/videos/unlock", {
+        method: "POST",
+        admin: false,
+        body: JSON.stringify({ id: id, password: password }),
+      });
+    },
+
+    async login(email, password) {
+      return request("/api/auth/login", {
+        method: "POST",
+        admin: false,
+        body: JSON.stringify({ email, password }),
+      });
+    },
+
+    async signup(name, email, password) {
+      return request("/api/auth/signup", {
+        method: "POST",
+        admin: false,
+        body: JSON.stringify({ name, email, password }),
+      });
+    },
+
+    async adminLogin(username, password) {
+      return request("/api/admin/login", {
+        method: "POST",
+        admin: false,
+        body: JSON.stringify({ username, password }),
+      });
+    },
+
+    async channels() {
+      return request("/api/channels");
+    },
+
+    async channel(id) {
+      return request("/api/channels/" + encodeURIComponent(id));
+    },
+  };
+
+  global.db = db;
+  global.D74Api = {
+    request: request,
+    pseudoXhr: pseudoXhr,
+    base() {
+      return apiBase;
+    },
+  };
+})(window);

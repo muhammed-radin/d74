@@ -9,6 +9,7 @@
 
     <link rel="stylesheet" href="../../view/app.css">
     <link rel="stylesheet" href="video.css">
+  <link rel="stylesheet" href="../shell.css">
 
     <script type="text/javascript" charset="utf-8">
       if (localStorage.getItem('admin')) {} else {
@@ -22,11 +23,17 @@
 
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+    <script>
+      if (window.dayjs && window.dayjs_plugin_relativeTime) {
+        dayjs.extend(dayjs_plugin_relativeTime);
+      }
+    </script>
 
   </head>
 
   <body>
     <nav>
+      <img class="nav-logo" src="../../logo.png" alt="" aria-hidden="true">
       <div class="title" animation="true">D74 Edits <b>Videos</b></div>
       <div class="right-icons">
         <ion-icon name="add-outline"></ion-icon>
@@ -66,8 +73,6 @@
     </div>
     <!div class="card-options">
       <! /div-->
-    </div>
-
     </div>
 
     <div class="load23"></div>

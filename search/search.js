@@ -1,63 +1,124 @@
-var bodyData = document.querySelector('.body').innerHTML;
+"use strict";
 
-function searchVideos(search = false, inScript = function() {}) {
-  document.querySelector('.loader-bg').style.display = 'block'
-  db.get(new db.Coll('videos', {}), function(xhr = new XMLHttpRequest()) {
-    var res = JSON.parse(xhr.response)
+/* ------------------------------------------------------------------
+   Search controller
+------------------------------------------------------------------ */
 
+(function () {
+  const form = document.getElementById("searchForm");
+  const input = document.getElementById("searcher");
+  const results = document.getElementById("results");
+  const empty = document.getElementById("searchEmpty");
+  const count = document.getElementById("resultCount");
+  const loader = document.getElementById("pageLoader");
+  const chips = document.getElementById("trendingChips");
 
-    if (document.querySelector('.loader-bg')) {
-      document.querySelector('.loader-bg').style.display = 'none'
-    }
+  let library = [];
+  let ready = false;
+  let timer = null;
 
-    if (search != false) {
-      document.getElementById('searcher').value = search
-      srchVd(search)
-    }
+  function esc(value) {
+    return window.D74UI ? D74UI.escapeHTML(value) : String(value == null ? "" : value);
+  }
 
-    function srchVd(value) {
-      document.querySelector('.body').innerHTML = '';
-      res.forEach(function(data, index) {
-        data.title = new String(data.title);
-        data.description = new String(data.description);
-        if ( data.title && value &&
-          data.title.toLocaleLowerCase().includes(value.toLocaleLowerCase()) 
-          || data.description && value && data.description.toLocaleLowerCase().includes(value.toLocaleLowerCase())) {
-            
-          var id = 'ID_10' + index
-          var code = search_page_card.create(data, id)
-          document.querySelector('.body').innerHTML += code
-        }
-      })
-    }
+  function setLoader(show) {
+    if (loader) loader.classList.toggle("is-hidden", !show);
+  }
 
-    inScript()
+  function currentQuery() {
+    return (input && input.value ? input.value : "").trim();
+  }
 
-    document.getElementById('searcher').onchange = function(e) {
-      if (document.getElementById('searcher').value == false || document.getElementById('searcher').value == '') {
-        //document.querySelector('.null-search').style.display = 'block'
-                document.querySelector('.body').innerHTML = bodyData
-      } else {
-        //document.querySelector('.null-search').style.display = 'none'
+  function render() {
+    if (!results) return;
+    const query = currentQuery().toLowerCase();
+    const filtered = query
+      ? library.filter(function (item) {
+          const haystack = [
+            item.title,
+            item.description,
+            Array.isArray(item.tags) ? item.tags.join(" ") : "",
+          ]
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(query);
+        })
+      : library.slice(0, 24);
+
+    results.innerHTML = "";
+    if (!filtered.length) {
+      if (empty) empty.hidden = false;
+      if (count) {
+        count.textContent = query
+          ? 'No clips match "' + query + '"'
+          : "The library is empty right now.";
       }
-
-      if (document.getElementById('searcher').value == false || document.getElementById('searcher').value.replaceAll(' ', '') == '' || document.getElementById('searcher').value == 'null') {
-        //document.querySelector('.body').innerHTML = ''
-      } else {
-        srchVd(document.getElementById('searcher').value)
-      }
+      return;
     }
-  }, 0)
-}
 
-function openOptions(id) {
-  var elem = document.getElementById(id)
-  elem.style.display = 'block'
-}
+    if (empty) empty.hidden = true;
+    filtered.forEach(function (item, index) {
+      const id = "search_" + (item.ytid || index) + "_" + index;
+      results.appendChild(search_page_card.create(item, id, index).parseElement()[0]);
+    });
+    if (count) {
+      count.textContent =
+        (query ? filtered.length + " result" + (filtered.length === 1 ? "" : "s") + " for “" + currentQuery() + "”" : "Showing " + filtered.length + " of " + library.length + " clips");
+    }
+  }
 
-function closeOptions(id) {
-  var elem = document.getElementById(id)
-  elem.style.display = 'none'
-}
+  function scheduleRender() {
+    clearTimeout(timer);
+    timer = setTimeout(render, 180);
+  }
 
-searchVideos()
+  function loadLibrary() {
+    setLoader(true);
+    db.get(new db.Coll("videos", {}), function (xhr) {
+      const data = xhr && typeof xhr.json === "function" ? xhr.json() : null;
+      library = Array.isArray(data)
+        ? data.filter(function (item) {
+            return item && (item.title || item.ytid);
+          })
+        : [];
+      ready = true;
+      setLoader(false);
+      if (!library.length && window.toast) {
+        toast("Could not load the clip library right now.", "error");
+      }
+      render();
+    });
+  }
+
+  if (input) {
+    input.addEventListener("input", scheduleRender);
+    const initial = new URLSearchParams(window.location.search).get("q");
+    if (initial) input.value = initial;
+  }
+
+  if (form) {
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      render();
+      const query = currentQuery();
+      const url = query ? "?q=" + encodeURIComponent(query) : window.location.pathname;
+      window.history.replaceState(null, "", url);
+    });
+  }
+
+  if (chips) {
+    chips.addEventListener("click", function (event) {
+      const chip = event.target.closest(".chip");
+      if (!chip || !input) return;
+      input.value = chip.textContent.trim();
+      render();
+      window.history.replaceState(
+        null,
+        "",
+        "?q=" + encodeURIComponent(input.value)
+      );
+    });
+  }
+
+  loadLibrary();
+})();

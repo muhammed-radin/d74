@@ -1,19 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Not Found 404</title>
-  <link rel="shortcut icon" type="image/x-icon" href="../logo.png">
+  <title>404 · D74 Edits</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, follow">
+  <meta name="theme-color" content="#08090b">
 
-  <link rel="stylesheet" href="404.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/404/404.css">
+
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 
-<body>
-  <div class="null-search">
-    <img src="undraw_page_not_found_re_e9o6.svg" alt="">
-  </div>
+<body class="dark">
+  <div class="ambient" aria-hidden="true"></div>
+
+  <main class="error-page">
+    <a class="brand" href="/" aria-label="D74 Edits home">
+      <span class="brand-mark"><img src="/logo.png" alt="" aria-hidden="true"></span>
+      <span class="brand-text">
+        <span class="brand-name">D74 Edits</span>
+        <span class="brand-sub">Page not found</span>
+      </span>
+    </a>
+
+    <div class="error-art" aria-hidden="true">
+      <span class="error-code">4</span>
+      <span class="error-ball">
+        <ion-icon name="football-outline"></ion-icon>
+      </span>
+      <span class="error-code">4</span>
+    </div>
+
+    <h1 class="error-title">Off the pitch.</h1>
+    <p class="error-copy">
+      The page you're looking for doesn't exist, moved, or took an early shower.
+    </p>
+
+    <div class="error-actions">
+      <a class="btn btn-primary" href="/explore/">
+        <ion-icon name="compass-outline"></ion-icon>
+        Explore clips
+      </a>
+      <a class="btn btn-ghost" href="/">
+        <ion-icon name="home-outline"></ion-icon>
+        Go home
+      </a>
+    </div>
+
+    <p class="small" style="margin-top:36px;color:var(--muted)">
+      © <span data-year></span> D74 Edits
+    </p>
+  </main>
+
+  <script src="/view/app.js"></script>
+  <script src="/view/ui.js"></script>
 </body>
 
 </html>

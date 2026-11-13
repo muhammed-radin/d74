@@ -97,3 +97,32 @@
 ### 0V 
 - formated with prettier
 - removed over data collecting from user
+
+### 0W ( Major Security & Design Update )
+- redesigned every page with a new responsive design system
+- added animated landing page, ambient orbs, glass cards and scroll reveals
+- added `server.js` (zero dependencies) to serve files and proxy privileged APIs
+- moved restdb, RapidAPI, JW Player and admin credentials into `.env`
+- removed browser-side Firebase access and all hard-coded API keys
+- passwords now hashed with scrypt; legacy accounts upgrade on next login
+- download passwords verified by `POST /api/videos/unlock`; public video data no longer exposes `pw` or `url`
+- admin login now uses signed, expiring session tokens; removed the old backdoor
+- moved 168 channel configs out of client JS and into server-side data
+- added security headers, CSP, rate limiting and path-traversal protection
+- added mobile dock navigation and new login, signup, settings, clip detail and 404 pages
+- added README with setup and key-rotation instructions
+
+### 0X ( Design refinement )
+- added the D74 logo to every navigation bar and drawer
+- replaced ambient orbs, gradient text and glass panels with a sharper broadcast-style system
+- reworked landing typography, section rhythm, ticker, feature cards, CTA and footer spacing
+- added API fallback for static preview servers plus a clear offline notice
+- added CORS preflight support for local development on a separate port
+- refreshed 404, auth, admin shell and form styling
+
+### 0Y ( Motion & screen-fit hero )
+- made the landing hero exactly one screen tall using `vh`, `lvh` and `svh` units
+- added anime.js entrance timeline with masked word reveals, staged hero copy and stage floats
+- added anime-driven counters, scroll reveals, pointer tilt, stage spotlight and magnetic buttons
+- added reading-progress line, rotating logo, play pulse, icon pop, shine sweep and underline hovers
+- added a scroll cue, short-screen hero fallback and reduced-motion / no-CDN fallbacks

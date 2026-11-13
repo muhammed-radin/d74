@@ -1,69 +1,98 @@
-var params = location.search.replace('?', '');
-var paramsString = '{"' + params.replaceAll("&", '","').replaceAll('=', '":"') + '"}';
-var sid = ''
+"use strict";
 
-if (params == '') {
-  alert("File Not Found", "sorry, this id not found", function() {
-    window.location.href = '../'
-  })
-  window.location.href = '../'
-} else {
-  var objectParams = JSON.parse(paramsString);
-  objectParams = objectParams
+/* ------------------------------------------------------------------
+   Admin clip editor
+   Loads a video record, then saves edits through the admin proxy.
+------------------------------------------------------------------ */
 
-  if (objectParams.id == undefined) {
+(function () {
+  const ytId = new URLSearchParams(window.location.search).get("id") || "";
 
-  } else {
-    var ytId = objectParams.id
-    var q = new db.Coll('videos', { ytid: ytId })
-
-    db.get(q, function(xhr = new XMLHttpRequest()) {
-      var res = JSON.parse(xhr.response)[0]
-      
-      if (JSON.parse(xhr.response).length == 0) {
-        alert('Data Not Found', 'Data not found in d74 edits server. please install this video', function(){
-          window.location.href = '../init/?id='+ytId
-        })
-      }
-      
-      document.getElementById('title').value = res.title
-      document.getElementById('password').value = res.pw
-      document.getElementById('date').value = res.date
-      document.getElementById('ytid').value = res.ytid
-      sid = document.getElementById('sid').value = res._id
-      document.getElementById('vurl').value = res.url
-      document.getElementById('imgUrl').value = res.thumb
-      const des = res.description
-
-      loadImg()
-
-      document.getElementById('submit').onclick = function() {
-        db.put('videos/' + sid, JSON.stringify({
-          title: document.getElementById('title').value,
-          pw: document.getElementById('password').value,
-          date: document.getElementById('date').value,
-          ytid: document.getElementById('ytid').value,
-          url: document.getElementById('vurl').value,
-          thumb: document.getElementById('imgUrl').value,
-          description: des
-        }), function() {
-          if (xhr.status != 200) {
-            alert('Saving Unsuccessful!', 'data not saved in server, please try again')
-          } else {
-            alert('Saved Successfully', 'Data Successfully Updated')
-          }
-        })
-      }
-    })
+  function $(id) {
+    return document.getElementById(id);
   }
-}
 
-function loadImg() {
-  document.getElementById('img').src = document.getElementById('imgUrl').value
-  document.getElementById('img').onerror = function() {
-    document.getElementById('img').src = '../../visit/image.png'
+  function parse(xhr) {
+    if (!xhr) return null;
+    if (typeof xhr.json === "function") return xhr.json();
+    try {
+      return JSON.parse(xhr.response);
+    } catch (_) {
+      return null;
+    }
   }
-}
 
-document.getElementById('imgUrl').addEventListener('change', loadImg);
-document.getElementById('imgUrl').addEventListener('keyup', loadImg);
+  function loadImg() {
+    const img = $("img");
+    const url = $("imgUrl");
+    if (!img || !url) return;
+    img.src = url.value;
+    img.onerror = function () {
+      img.src = "../../visit/image.png";
+    };
+  }
+
+  if (!/^[A-Za-z0-9_-]{6,20}$/.test(ytId)) {
+    alert("File Not Found", "This video id is missing or invalid.", function () {
+      window.location.href = "../videos/";
+    });
+    return;
+  }
+
+  const imgUrl = $("imgUrl");
+  if (imgUrl) {
+    imgUrl.addEventListener("change", loadImg);
+    imgUrl.addEventListener("keyup", loadImg);
+  }
+
+  (async function load() {
+    const result = await db.get(new db.Coll("videos", { ytid: ytId }));
+    const data = parse(result);
+    const record = Array.isArray(data) ? data[0] : null;
+
+    if (!record) {
+      alert("Data Not Found", "This video is not installed yet. Opening the installer.", function () {
+        window.location.href = "../init/?id=" + encodeURIComponent(ytId);
+      });
+      setTimeout(function () {
+        window.location.href = "../init/?id=" + encodeURIComponent(ytId);
+      }, 1800);
+      return;
+    }
+
+    $("title").value = record.title || "";
+    $("password").value = record.pw || "";
+    $("date").value = record.date || "";
+    $("ytid").value = record.ytid || ytId;
+    const sid = $("sid");
+    sid.value = record._id || "";
+    $("vurl").value = record.url || "";
+    $("imgUrl").value = record.thumb || "";
+    loadImg();
+
+    $("submit").addEventListener("click", async function () {
+      const button = $("submit");
+      button.disabled = true;
+      button.textContent = "Saving…";
+
+      const saved = await db.put("videos/" + (record._id || ""), {
+        title: $("title").value,
+        pw: $("password").value,
+        date: $("date").value,
+        ytid: $("ytid").value,
+        url: $("vurl").value,
+        thumb: $("imgUrl").value,
+        description: record.description || "",
+      });
+
+      button.disabled = false;
+      button.textContent = "Save";
+
+      if (saved.status !== 200) {
+        alert("Saving Unsuccessful!", "The changes were not saved. Please try again.");
+      } else {
+        alert("Saved Successfully", "The clip has been updated.");
+      }
+    });
+  })();
+})();

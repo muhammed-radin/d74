@@ -1,0 +1,987 @@
+/* Landing page composition ---------------------------------------- */
+
+/* Ticker ---------------------------------------------------------- */
+
+.marquee {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  margin-top: clamp(56px, 8vw, 96px);
+  border-block: 1px solid var(--border);
+  background: var(--bg-2);
+}
+
+.marquee-label {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 22px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.marquee-label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.marquee-track {
+  display: flex;
+  align-items: center;
+  flex: none;
+  width: max-content;
+  gap: 42px;
+  padding: 15px 0;
+  animation: marquee 32s linear infinite;
+  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+}
+
+.marquee-track span {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.marquee-track span::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  background: var(--accent);
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Hero stage ------------------------------------------------------ */
+
+.visual-stage {
+  position: relative;
+  min-height: clamp(420px, 44vw, 520px);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    #0a0c0f;
+  background-size: 48px 48px, 48px 48px, auto;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.light .visual-stage {
+  background:
+    linear-gradient(rgba(10, 17, 25, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10, 17, 25, 0.05) 1px, transparent 1px),
+    #e8e6de;
+  background-size: 48px 48px, 48px 48px, auto;
+}
+
+.visual-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(340px 240px at 50% 44%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 72%);
+  pointer-events: none;
+}
+
+.visual-stage::after {
+  content: "D74 / Broadcast feed";
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stage-card {
+  position: relative;
+  z-index: 2;
+  width: min(328px, 76%);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-solid);
+  box-shadow: 14px 14px 0 -1px color-mix(in srgb, var(--accent) 18%, transparent);
+  overflow: hidden;
+}
+
+.stage-thumb {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    #050607;
+  background-size: 32px 32px, 32px 32px, auto;
+}
+
+.stage-thumb img {
+  width: 46%;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  transform: scale(1.04);
+  filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.55));
+}
+
+.stage-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(5, 8, 12, 0.68), transparent 55%);
+}
+
+.stage-play {
+  position: absolute;
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 1.15rem;
+  box-shadow: 0 10px 26px -10px rgba(0, 0, 0, 0.8);
+}
+
+.stage-body {
+  padding: 15px 16px 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.stage-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.stage-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stage-float {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 2px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.stage-float ion-icon {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.stage-float.top {
+  top: 20px;
+  right: 18px;
+}
+
+.stage-float.bottom {
+  bottom: 20px;
+  left: 18px;
+}
+
+/* Feature cards --------------------------------------------------- */
+
+.feature-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  counter-reset: feature;
+}
+
+.feature-card {
+  position: relative;
+  overflow: hidden;
+  padding: 28px 24px 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  counter-increment: feature;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, background 0.3s ease;
+}
+
+.feature-card::before {
+  content: "0" counter(feature);
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.feature-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--accent);
+  font-size: 1.28rem;
+  margin-bottom: 26px;
+}
+
+.feature-card h3 {
+  font-size: 1.12rem;
+  margin-bottom: 9px;
+  letter-spacing: -0.025em;
+}
+
+.feature-card p {
+  font-size: 0.87rem;
+  color: var(--muted);
+  line-height: 1.72;
+}
+
+/* Split strip ----------------------------------------------------- */
+
+.split-strip {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.mini-stat {
+  padding: 26px 24px;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+}
+
+.mini-stat strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  color: var(--accent);
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+}
+
+.mini-stat span {
+  display: block;
+  margin-top: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* CTA ------------------------------------------------------------- */
+
+.cta-panel {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(32px, 6vw, 60px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: grid;
+  gap: 30px;
+  text-align: left;
+}
+
+.cta-panel::after {
+  content: "";
+  position: absolute;
+  top: -120px;
+  right: -80px;
+  width: 340px;
+  height: 340px;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-ink) 13%, transparent) 0 2px,
+    transparent 2px 12px
+  );
+  pointer-events: none;
+}
+
+.cta-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.cta-panel .section-kicker {
+  color: var(--accent-ink);
+  opacity: 0.66;
+}
+
+.cta-panel h2 {
+  font-size: clamp(1.85rem, 4.4vw, 3.1rem);
+  max-width: 18ch;
+  margin: 0;
+  letter-spacing: -0.05em;
+  color: var(--accent-ink);
+}
+
+.cta-panel p {
+  max-width: 50ch;
+  margin: 16px 0 0;
+  color: var(--accent-ink);
+  opacity: 0.76;
+  font-size: 0.94rem;
+  line-height: 1.7;
+}
+
+.cta-panel .hero-actions {
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+  justify-content: flex-start;
+}
+
+.cta-panel .btn-primary {
+  background: var(--accent-ink);
+  color: var(--accent);
+  border-color: var(--accent-ink);
+}
+
+.cta-panel .btn-primary:hover {
+  filter: none;
+  opacity: 0.9;
+  box-shadow: none;
+}
+
+.cta-panel .btn-ghost {
+  border-color: color-mix(in srgb, var(--accent-ink) 42%, transparent);
+  color: var(--accent-ink);
+  background: transparent;
+}
+
+.cta-panel .btn-ghost:hover {
+  background: color-mix(in srgb, var(--accent-ink) 10%, transparent);
+  border-color: var(--accent-ink);
+  color: var(--accent-ink);
+}
+
+@media (min-width: 880px) {
+  .cta-panel {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 48px;
+  }
+
+  .cta-panel .hero-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* Landing rhythm -------------------------------------------------- */
+
+.page {
+  padding-bottom: clamp(48px, 6vw, 72px);
+}
+
+.page .section {
+  margin-top: clamp(76px, 10vw, 128px);
+}
+
+/* Footer ---------------------------------------------------------- */
+
+.site-footer {
+  margin-top: clamp(84px, 10vw, 132px);
+  padding: 44px 0 28px;
+  border-top: 1px solid var(--border-strong);
+}
+
+.footer-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.footer-links a:hover {
+  color: var(--accent);
+}
+
+.footer-note {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+@media (max-width: 620px) {
+  .marquee-label {
+    padding: 0 14px;
+    font-size: 0.54rem;
+    letter-spacing: 0.12em;
+  }
+
+  .marquee-track {
+    gap: 28px;
+  }
+
+  .stage-float.top {
+    top: 14px;
+    right: 12px;
+  }
+
+  .stage-float.bottom {
+    bottom: 14px;
+    left: 12px;
+  }
+
+  .visual-stage::after {
+    left: 14px;
+    top: 15px;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero-screen .stage-float.bottom {
+    display: none;
+  }
+
+  .hero-screen .stage-body {
+    padding: 10px 12px 12px;
+  }
+
+  .hero-screen .stage-title {
+    font-size: 0.76rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Screen-fit hero
+   vh is the baseline, lvh covers mobile browsers with retractable
+   chrome, and svh wins where supported so the first fold never spills.
+------------------------------------------------------------------ */
+
+.page.landing {
+  padding-top: var(--topbar-h);
+}
+
+.hero-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100vh - var(--topbar-h));
+  min-height: calc(100lvh - var(--topbar-h));
+  min-height: calc(100svh - var(--topbar-h));
+  padding-top: clamp(20px, 3.4svh, 52px);
+  padding-bottom: clamp(20px, 3.4svh, 52px);
+}
+
+.hero-screen > div {
+  min-width: 0;
+}
+
+.hero-title .word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding: 0.08em 0 0.24em;
+  margin: -0.08em 0 -0.24em;
+}
+
+.hero-title .word-inner {
+  display: inline-block;
+  will-change: transform;
+}
+
+.hero-scroll {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 0.25s ease;
+}
+
+.hero-scroll:hover {
+  color: var(--accent);
+}
+
+.hero-scroll-line {
+  width: 1px;
+  height: 34px;
+  background: linear-gradient(to bottom, var(--accent), transparent);
+  transform-origin: top center;
+  animation: scroll-cue 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes scroll-cue {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  35% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1) translateY(20px);
+    opacity: 0;
+  }
+}
+
+@media (min-width: 880px) {
+  .hero-screen {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(38px, 4.5vw, 72px);
+    align-items: center;
+  }
+
+  .hero-screen .visual-stage {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 880px) and (min-height: 720px) {
+  .hero-scroll {
+    display: flex;
+  }
+}
+
+@media (max-width: 879px) {
+  .hero-screen .hero-title {
+    margin-top: clamp(12px, 1.8svh, 22px);
+    font-size: clamp(2.05rem, 9vw, 3.2rem);
+    max-width: 15ch;
+  }
+
+  .hero-screen .hero-sub {
+    margin-top: clamp(12px, 1.9svh, 20px);
+    font-size: clamp(0.9rem, 3.7vw, 1rem);
+    line-height: 1.6;
+  }
+
+  .hero-screen .hero-actions {
+    margin-top: clamp(18px, 2.6svh, 30px);
+  }
+
+  .hero-screen .hero-stats {
+    margin-top: clamp(20px, 3svh, 42px);
+  }
+
+  .hero-screen .visual-stage {
+    margin-top: clamp(16px, 2.6svh, 32px);
+    min-height: clamp(236px, 30svh, 320px);
+  }
+
+  .hero-screen .stage-card {
+    width: min(252px, 76%);
+  }
+
+  .hero-screen .stage-body {
+    padding: 11px 13px 13px;
+    gap: 5px;
+  }
+
+  .hero-screen .stage-title {
+    font-size: 0.8rem;
+  }
+}
+
+/* Short or landscape phones: keep the hero copy on one screen. */
+@media (max-width: 879px) and (max-height: 724px) {
+  .hero-screen .visual-stage {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Extended motion & hover choreography
+------------------------------------------------------------------ */
+
+/* Reading progress line, injected by view/motion.js. */
+.scroll-progress {
+  position: fixed;
+  z-index: 1002;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Hero stage: pointer-tracked spotlight. */
+.visual-stage {
+  --px: 50%;
+  --py: 44%;
+}
+
+.visual-stage::before {
+  background: radial-gradient(
+    360px 260px at var(--px) var(--py),
+    color-mix(in srgb, var(--accent) 20%, transparent),
+    transparent 72%
+  );
+}
+
+.stage-card {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
+}
+
+.visual-stage:hover .stage-card {
+  transform: translateY(-6px) scale(1.015);
+  box-shadow: 18px 18px 0 -1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.stage-thumb img {
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease;
+}
+
+.visual-stage:hover .stage-thumb img {
+  transform: scale(1.12);
+  filter: drop-shadow(0 24px 44px rgba(0, 0, 0, 0.65));
+}
+
+.stage-play::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: play-ring 2.8s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes play-ring {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.65;
+  }
+  70%,
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+.stage-float {
+  will-change: transform, translate;
+}
+
+/* Feature cards: pointer spotlight, icon flip and number highlight. */
+.feature-card {
+  --mx: 50%;
+  --my: 50%;
+  background:
+    radial-gradient(
+      320px 240px at var(--mx) var(--my),
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 70%
+    ),
+    var(--surface);
+  will-change: transform;
+}
+
+.feature-card:hover {
+  border-color: var(--accent);
+  background:
+    radial-gradient(
+      340px 260px at var(--mx) var(--my),
+      color-mix(in srgb, var(--accent) 13%, transparent),
+      transparent 70%
+    ),
+    var(--surface-2);
+}
+
+.feature-card::before {
+  transition: color 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.feature-card:hover::before {
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.feature-icon {
+  transition: background 0.35s ease, color 0.35s ease, border-color 0.35s ease,
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.feature-card:hover .feature-icon {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  transform: rotate(-6deg) scale(1.08);
+}
+
+.feature-card:hover .feature-icon ion-icon {
+  animation: icon-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes icon-pop {
+  0% {
+    transform: scale(1) rotate(0);
+  }
+  45% {
+    transform: scale(1.26) rotate(9deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+/* Mini stats. */
+.mini-stat {
+  transition: background 0.35s ease;
+}
+
+.mini-stat strong {
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+  transform-origin: left center;
+}
+
+.mini-stat:hover {
+  background: var(--surface-2);
+}
+
+.mini-stat:hover strong {
+  transform: translateY(-3px);
+}
+
+/* Ticker reacts to the cursor. */
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+.marquee-track span {
+  transition: color 0.25s ease;
+}
+
+.marquee-track span:hover {
+  color: var(--text);
+}
+
+/* CTA stripes drift continuously. */
+.cta-panel::after {
+  animation: stripe-drift 20s linear infinite;
+}
+
+@keyframes stripe-drift {
+  to {
+    transform: translate3d(-48px, 48px, 0);
+  }
+}
+
+/* Footer link underline. */
+.footer-links a {
+  position: relative;
+}
+
+.footer-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.footer-links a:hover::after {
+  transform: scaleX(1);
+}
+
+/* Eyebrow football slowly rolls. */
+.hero-eyebrow .dot ion-icon {
+  animation: ball-spin 7s linear infinite;
+}
+
+@keyframes ball-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Make the split-word masks harmless when motion is reduced. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-title .word {
+    overflow: visible;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .hero-title .word-inner {
+    transform: none !important;
+  }
+
+  .hero-scroll-line,
+  .hero-eyebrow .dot ion-icon,
+  .stage-play::after,
+  .cta-panel::after {
+    animation: none;
+  }
+}
+
+/* Short screens: scale the hero down instead of letting it spill. */
+
+@media (max-height: 760px) {
+  .hero-screen {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .hero-screen .hero-title {
+    margin-top: 12px;
+    font-size: clamp(1.9rem, min(8.2vh, 6.4vw), 3.4rem);
+    max-width: 22ch;
+  }
+
+  .hero-screen .hero-sub {
+    margin-top: 12px;
+    line-height: 1.55;
+  }
+
+  .hero-screen .hero-actions {
+    margin-top: 20px;
+  }
+
+  .hero-screen .hero-stats {
+    margin-top: 24px;
+  }
+
+  .hero-screen .stage-float.bottom {
+    display: none;
+  }
+}
+
+@media (min-width: 880px) and (max-height: 760px) {
+  .hero-screen .visual-stage {
+    min-height: clamp(280px, 50vh, 400px);
+  }
+}
+
+@media (max-height: 520px) {
+  .hero-screen {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .hero-screen .hero-eyebrow {
+    display: none;
+  }
+
+  .hero-screen .hero-title {
+    margin-top: 8px;
+    font-size: clamp(1.6rem, min(7vh, 6vw), 2.4rem);
+  }
+
+  .hero-screen .hero-sub {
+    margin-top: 8px;
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .hero-screen .hero-actions {
+    margin-top: 14px;
+  }
+
+  .hero-screen .hero-stats {
+    margin-top: 16px;
+  }
+}
