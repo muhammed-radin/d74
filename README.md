@@ -1,37 +1,47 @@
 # D74 Edits
 
-Free football clips, highlights and 168 live TV channels — rebuilt as a fast, responsive site with a small Node server in front of every privileged API.
+Free football clips, highlights and 168 live TV channels — rebuilt as a fast, responsive site behind a hardened Express server with a secure admin control room.
 
 ![D74 Edits](logo.png)
 
-## What changed in this redesign
+## Highlights
 
-- **Broadcast-inspired design system** — near-black canvas, sharp borders, one lime accent, editorial typography and restrained motion. The D74 logo now appears in the navigation on every page.
-- **Screen-fit hero + motion** — the landing hero uses `svh`/`lvh`/`vh` so it fills exactly one screen on mobile and desktop. anime.js drives the headline mask reveal, a staged entrance timeline, counters, scroll reveals, pointer tilt and magnetic buttons, with a reduced-motion and no-CDN fallback.
-- **Responsive on every page** — landing, explore, search, live TV, clip detail, login, signup, settings, 404 and the admin dashboard.
-- **No secrets in the browser** — the restdb, RapidAPI and JW Player keys now live in `.env` and are only read by `server.js`.
-- **Server-side auth** — passwords are salted and hashed with scrypt. Legacy plaintext accounts are upgraded automatically on their next successful login.
-- **Server-side download unlocking** — the clip password and download URL never reach the browser until the password is verified.
-- **Signed admin sessions** — the old database password check and long-press backdoor are gone. Admin routes require an HMAC-signed, expiring token.
+- **Broadcast-inspired design** — near-black canvas, sharp borders, one lime accent, editorial typography and restrained motion. The D74 logo appears in every navigation bar.
+- **Screen-fit hero + motion** — the landing hero uses `svh`/`lvh`/`vh` so it fills exactly one screen. anime.js drives the headline reveal, counters, scroll reveals, pointer tilt and magnetic buttons, with reduced-motion and no-CDN fallbacks.
+- **Responsive everywhere** — public pages and the admin all work from 360 px phones to wide desktops.
+- **No secrets in the browser** — restdb, RapidAPI, JW Player and admin credentials live in `.env` and are only read by the Node process.
+- **Secure administrator sessions** — server-side sessions in an `httpOnly`, `SameSite=Strict` cookie; CSRF tokens; idle and absolute expiry; device binding; session-id regeneration; revoke-one and revoke-all; full audit trail.
+- **Caching that respects the quota** — restdb reads are cached with stale-while-revalidate and single-flight coalescing. Redis is used when available, otherwise a bounded in-memory cache takes over automatically.
+- **Event-driven updates** — an SSE stream pushes video, theme, account, sync and security events to open tabs. Admin pages and the public site refresh without polling.
+- **Quota-aware YouTube sync** — a cron job paginates each channel's uploads playlist (not search) and merges multiple channels into one `videos` collection while staying inside the 500 requests/day plan.
+- **Admin dashboard, analytics and monitoring** — traffic, error rate, cache hit rate, unique visitors, DB/YouTube quota, sync state, runtime health, sessions, audit trail and live events.
+- **Zero motion in admin** — the admin disables every animation and transition, including the public button effects.
+
+## Requirements
+
+- **Node.js 18+** (uses the built-in `fetch` and `AbortSignal.timeout`).
+- A restdb.io database and a RapidAPI key.
+- Redis is optional but recommended for multi-instance deployments.
 
 ## Quick start
 
-Requirements: **Node.js 18+** (no npm dependencies).
-
 ```bash
-# 1. Install the environment file
-cp .env.example .env
-#    then edit .env and fill in real values
+# 1. Install dependencies
+npm install
 
-# 2. Add the live channel data (not committed — it contains DRM keys)
+# 2. Create the environment file
+cp .env.example .env
+#    edit .env and fill in real values
+
+# 3. Add the live channel data (gitignored — it contains DRM keys)
 #    server/data/channels.json
 
-# 3. Run
+# 4. Run
 npm start
 # or: node server.js
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3005>. The admin control room is at <http://localhost:3005/Admin/>.
 
 For development with automatic restarts:
 
@@ -39,60 +49,105 @@ For development with automatic restarts:
 npm run dev
 ```
 
+Verify every JavaScript and CSS file without starting anything:
+
+```bash
+npm run check
+```
+
+### Database collections
+
+The server allow-lists five restdb collections: `videos`, `account`, `themes`, `promotions` and `custom`. Reads of a missing collection return an empty list, but writes fail. Create `themes` and `promotions` in the restdb dashboard before using those admin pages; a write returns `409` with a clear “collection does not exist” message until then. Never store secrets in `custom` — it is only readable by an administrator session.
+
 ### API 404s
 
-Every `/api/*` route is provided by `server.js`. If you open the pages through a separate static preview server, the client automatically retries the Node app on port 3000 (including Codespaces and Gitpod port-forwarding). The Node process still has to be running. To point at a different backend, set a global before `view/d74.js` loads:
+Every `/api/*` route is served by the Express app. If you open the pages through a separate static preview server, the client automatically retries the Node app on port `3005`/`3000` (including Codespaces and Gitpod port-forwarding). The Node process still has to be running. To point at a different backend, set a global before `view/d74.js` loads:
 
 ```html
 <script>window.D74_API_BASE = "https://your-api.example.com";</script>
 ```
 
-## Environment variables
+## Administrator access
+
+Open `/Admin/` and sign in with `ADMIN_USERNAME` and `ADMIN_PASSWORD` (or `ADMIN_PASSWORD_HASH`). Passwords are verified with salted **scrypt** and compared in constant time.
+
+Security model:
+
+| Control | Behaviour |
+| --- | --- |
+| Session storage | Server-side store (Redis when configured, bounded memory otherwise). |
+| Cookie | `httpOnly`, `SameSite=Strict`, `Secure` in production, `__Host-` prefix in production. |
+| CSRF | Per-session token required on every mutating admin/database request. |
+| Expiry | Idle timeout plus an absolute lifetime; the CSRF token rotates periodically and the session id is regenerated on demand. |
+| Binding | User-agent bound by default (IP binding optional). |
+| Limits | Per-address and per-username login throttling, global API limits and write limits. |
+| Revocation | Revoke one session or every other session; a global revocation epoch invalidates old cookies instantly. |
+| Audit | Logins, logouts, revocations, syncs, cache clears and database writes are recorded. |
+
+The admin shell, dashboard, analytics, videos, accounts, themes, monitoring, installer and editor all share one responsive, animation-free interface. The browser only ever holds the session cookie and an in-memory CSRF token — never the session id.
+
+## YouTube sync (two channels)
+
+The cron sync reads each channel's **uploads playlist**, one page per run by default, so a full check costs a handful of requests instead of search quota. Configure channels in either place (they are merged and de-duplicated):
+
+```bash
+# .env
+YOUTUBE_CHANNEL_IDS=UCFodctpE1wtpFhWw716uCgg,SECOND_CHANNEL_ID
+```
+
+```json
+// server/data/youtube-channels.json (gitignored)
+[
+  { "id": "UCFodctpE1wtpFhWw716uCgg", "name": "D74 Edits" },
+  { "id": "SECOND_CHANNEL_ID", "name": "Second channel" }
+]
+```
+
+Defaults: every 6 hours (`17 */6 * * *` UTC), up to 25 new clips and one page per channel per run. Override with `YT_SYNC_CRON`, `YT_SYNC_MAX_NEW` and `YT_SYNC_PAGES`. Run a dry run from the dashboard before enabling a large sync. Sync state is stored in the gitignored `server/data/sync-state.json`.
+
+## Caching and quotas
+
+- Reads of `videos`, `themes`, `promotions` and `account` go through the cached data layer. Concurrent misses collapse into a single upstream request.
+- Fresh entries are served for `DB_CACHE_TTL` (60 s by default); stale entries may be served for `DB_STALE_TTL` (300 s) while a refresh runs in the background.
+- YouTube metadata is cached much longer (`YOUTUBE_CACHE_TTL`, `YOUTUBE_VIDEO_CACHE_TTL`) because the daily quota is small.
+- `DB_DAILY_LIMIT` and `YT_DAILY_LIMIT` track daily usage. Set `DB_QUOTA_HARD_STOP=true` to reject writes once the DB cap is reached; cached reads stay available either way.
+- Clear the cache from **Monitoring → Cache** or `POST /api/admin/cache/clear`.
+
+The cache driver is reported on the dashboard. If Redis is missing or unreachable, the server logs a warning, falls back to memory, and keeps serving.
+
+## Environment
+
+See [`.env.example`](.env.example) for the complete, commented list. The most important values:
 
 | Variable | Purpose |
 | --- | --- |
-| `PORT` | HTTP port (default `3000`). |
-| `NODE_ENV` | Set to `production` to enable HSTS and hide internal errors. |
-| `SESSION_SECRET` | HMAC key for admin session tokens. Use a long random value. |
-| `RESTDB_BASE_URL` | restdb.io REST base, e.g. `https://your-db.restdb.io/rest`. |
-| `RESTDB_API_KEY` | restdb.io API key (server only). |
-| `RAPIDAPI_KEY` | RapidAPI key for YouTube and football APIs. |
-| `YOUTUBE_RAPIDAPI_HOST` | YouTube API host (default `youtube-v31.p.rapidapi.com`). |
-| `FOOTBALL_RAPIDAPI_HOST` | Football API host. |
-| `YOUTUBE_CHANNEL_ID` | Channel used by the explore feed. |
+| `PORT` | HTTP port (default `3005`). |
+| `NODE_ENV` | `production` enables HSTS, secure cookies and hidden internal errors. |
+| `SESSION_SECRET` | Signs cookies and anonymises analytics. Use a long random value. |
+| `RESTDB_BASE_URL` / `RESTDB_API_KEY` | restdb.io endpoint and key (server only). |
+| `RAPIDAPI_KEY` | RapidAPI key for YouTube and football. |
+| `YOUTUBE_CHANNEL_ID` / `YOUTUBE_CHANNEL_IDS` | One or more channels for the feed and cron sync. |
 | `JWPLAYER_KEY` | JW Player licence key used by the live player. |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Administrator login. Set a strong unique password. |
-| `ADMIN_SESSION_HOURS` | Admin token lifetime (default `12`). |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Administrator login. Prefer `ADMIN_PASSWORD_HASH` in production. |
+| `ADMIN_SESSION_HOURS` / `ADMIN_SESSION_IDLE_MINUTES` | Absolute and idle session lifetimes. |
+| `REDIS_URL` | Enables Redis for cache and sessions. |
+| `DB_DAILY_LIMIT` / `YT_DAILY_LIMIT` | Daily quota caps (`0` disables). |
 
-Generate a session secret with:
+Generate a session secret:
 
 ```bash
 openssl rand -hex 32
 ```
 
-## Channel data
+Generate an admin password hash:
 
-`server/data/channels.json` maps channel ids to stream details:
-
-```json
-{
-  "CHANNEL_ID": {
-    "url": "https://example.com/live/master.mpd",
-    "k1": "clear-key-id",
-    "k2": "clear-key"
-  }
-}
+```bash
+node -e "const a=require('./server/auth');const h=a.hashPassword(process.argv[1]);console.log('scrypt$'+h.salt+'$'+h.hash)" 'your-password'
 ```
-
-- `.mpd` streams use the optional `k1`/`k2` ClearKey pair.
-- `.m3u8` streams are played without DRM keys.
-- The file is gitignored because it contains private stream and DRM configuration. Upload it to your deployment separately.
-
-Without the file the site still runs; Live TV simply reports that channels are unavailable.
 
 ## API surface
 
-All endpoints are served by `server.js`:
+All endpoints are served by the Express app.
 
 | Endpoint | Description |
 | --- | --- |
@@ -102,24 +157,50 @@ All endpoints are served by `server.js`:
 | `GET /api/channels/:id` | One channel's stream details + DRM keys. |
 | `POST /api/auth/signup` | Create an account (scrypt hash). |
 | `POST /api/auth/login` | Verify an account. |
-| `POST /api/admin/login` | Returns a signed admin token. |
-| `GET/POST/PUT/DELETE /api/db/*` | Allow-listed restdb proxy. |
-| `GET /api/youtube/search` | Explore feed (RapidAPI). |
-| `GET /api/youtube/videos?id=` | Clip metadata (RapidAPI). |
-| `GET /api/football` | Today's matches (RapidAPI). |
-| `POST /api/videos/unlock` | Verifies a download password and returns the URL. |
+| `POST /api/videos/unlock` | Verify a download password and return the URL. |
+| `GET /api/youtube/search` | Explore feed (RapidAPI, cached). |
+| `GET /api/youtube/videos?id=` | Clip metadata (RapidAPI, cached). |
+| `GET /api/football` | Today's matches (RapidAPI, cached). |
+| `GET /api/events` | Server-sent events (hello, heartbeat, data and security events). |
+| `POST /api/admin/login` | Create an administrator session. |
+| `POST /api/admin/logout` | Revoke the current session. |
+| `GET /api/admin/session` | Current session details + fresh CSRF token. |
+| `POST /api/admin/session/rotate` | Regenerate the session id and return a fresh CSRF token. The old cookie stops working immediately. |
+| `GET /api/admin/dashboard` | Dashboard totals, quota, sync, audit, sessions, runtime. |
+| `GET /api/admin/analytics?range=` | Traffic series, status codes, paths, recent requests. |
+| `GET /api/admin/monitoring` | Alerts, cache, quota, runtime, live events. |
+| `GET /api/admin/audit?limit=` | Audit trail. |
+| `GET/DELETE /api/admin/sessions/:key` | List or revoke sessions. |
+| `GET /api/admin/youtube/status` | Sync schedule and per-channel state. |
+| `POST /api/admin/youtube/sync` | Start a sync (`{ dryRun, wait, pages, maxNew }`). |
+| `POST /api/admin/cache/clear` | Clear cached data. |
+| `GET /api/admin/videos` / `accounts` / `themes` | Admin lists. |
+| `GET/POST/PUT/DELETE /api/db/*` | Allow-listed restdb proxy. Writes require admin + CSRF. |
 
-Public `videos` responses are sanitised: `pw` and `url` are stripped unless the request carries a valid admin token.
+Public `videos` responses are sanitised: `pw` and `url` are stripped and replaced with a computed `downloadable` boolean. Authenticated administrators can still read the full record through the admin proxy.
+
+## Test setup
+
+Generate a test admin account and a short-lived session:
+
+```bash
+# bad password → 401
+curl -i -X POST http://localhost:3005/api/admin/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"wrong"}'
+```
+
+Then use the `d74.sid` cookie from a successful login for `/api/admin/*` reads and send `X-CSRF-Token` on writes.
 
 ## Security notes
 
-- `.env`, `server/data/channels.json` and `node_modules/` are gitignored.
-- Static serving blocks `server/`, `node_modules/`, dotfiles and path traversal.
-- Security headers include CSP, `X-Content-Type-Options`, `X-Frame-Options`, a strict referrer policy and a permissions policy.
-- Login, signup, unlock and admin login endpoints are rate limited.
-- Admin tokens are signed with HMAC-SHA256 and verified with a timing-safe comparison.
-- The CSP allows `'unsafe-inline'` because a few pages still use inline bootstrap scripts, and `'unsafe-eval'` because JW Player 8 requires it. Tighten these if you migrate all scripts to external files or replace the player.
+- `.env`, `server/data/channels.json`, `server/data/youtube-channels.json` and `server/data/sync-state.json` are gitignored.
+- Static serving blocks `server/`, `node_modules/`, dotfiles, directory listings and path traversal.
+- Helmet sets CSP, `X-Content-Type-Options`, `X-Frame-Options`, a strict referrer policy and a permissions policy. The CSP keeps `'unsafe-eval'` and the JW Player CDN because JW Player 8 requires them.
+- Login, signup, unlock, admin login and YouTube endpoints are rate limited.
+- API responses are `no-store`; public cached database responses use a short `max-age`/`stale-while-revalidate` window.
 - Download passwords are compared server-side with a timing-safe comparison.
+- Legacy plaintext accounts are upgraded to scrypt on their next successful login.
 
 ### ⚠️ Rotate every key
 
@@ -136,25 +217,40 @@ Earlier versions of this project committed real credentials to git. Deleting the
 
 ```
 .
-├── server.js              # static server, API proxy, auth, security headers
-├── .env.example           # environment template
-├── server/data/           # channels.json (gitignored)
-├── view/                  # shared design system (app.css, color.css, ui.js, d74.js, app.js)
-├── index.html             # landing page
-├── explore/               # clip feed + matches + channels
-├── search/                # search page
-├── livestreams/           # live TV browser
-├── livehelper/player.html # isolated JW Player page
-├── visit/                 # clip detail + download unlock
-├── login/ signup/         # auth pages
-├── settings/              # theme, accent, account
+├── server.js                 # Express bootstrap + graceful shutdown
+├── server/
+│   ├── app.js                # middleware chain, CSP, static serving, errors
+│   ├── config.js             # env loading and normalisation
+│   ├── cache.js              # Redis + bounded memory cache
+│   ├── db.js                 # metered, cached data layer
+│   ├── sessions.js           # admin sessions, CSRF, revocation
+│   ├── analytics.js          # traffic, audit and runtime metrics
+│   ├── events.js             # SSE hub
+│   ├── youtube.js            # quota-aware multi-channel cron sync
+│   ├── quota.js              # daily DB/YouTube counters
+│   └── routes/               # public, admin and database routers
+├── .env.example              # environment template
+├── scripts/check.js          # syntax + CSS health check
+├── server/data/              # channels.json (gitignored), sync state
+├── view/                     # shared design system (app.css, color.css, ui.js, d74.js, motion.js)
+├── index.html                # landing page
+├── explore/                  # clip feed + matches + channels
+├── search/                   # search page
+├── livestreams/              # live TV browser
+├── livehelper/player.html    # isolated JW Player page
+├── visit/                    # clip detail + download unlock
+├── login/ signup/            # auth pages
+├── settings/                 # theme, accent, account
 ├── 404/
-└── Admin/                 # dashboard, videos, accounts, themes, installer, editor
+└── Admin/                    # shell, dashboard, analytics, videos, accounts,
+                              # themes, monitoring, installer, editor, login
 ```
 
 ## Motion
 
 The landing page loads anime.js from jsDelivr (`cdn.jsdelivr.net`, already allowed by the CSP). If the script is blocked, or the visitor has `prefers-reduced-motion` enabled, `view/motion.js` exits and the CSS/IntersectionObserver fallback in `view/ui.js` handles reveals, counters and tilt. To self-host, save `anime.min.js` into `view/` and point the script tag at it.
+
+The admin deliberately ignores `view/ui.js` and `view/motion.js`, and `Admin/admin.css` forces `animation: none` and `transition: none` on every element.
 
 ## Credits
 

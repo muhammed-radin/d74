@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D74 Edits | Admin monitoring</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
+
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
+<body class="dark admin-body" data-admin-page="monitoring" data-admin-title="Monitoring">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
+
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Security and health</span>
+        <h2>Monitoring</h2>
+        <p>Sessions, audit trail, quota, cache health, runtime metrics and the live event stream.</p>
+      </div>
+      <div class="admin-head-actions">
+        <button class="btn btn-ghost btn-sm" type="button" id="monRefresh">
+          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Refresh
+        </button>
+        <button class="btn btn-danger btn-sm" type="button" id="monRevokeAll">Revoke other sessions</button>
+      </div>
+    </div>
+
+    <div class="admin-stack" id="monAlerts" aria-live="polite"></div>
+
+    <div class="admin-stats admin-mt">
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="shield-checkmark-outline"></ion-icon> Sessions</span>
+        <div class="admin-stat-value" id="monSessions">—</div>
+        <div class="admin-stat-meta" id="monSessionsMeta">—</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="flash-outline"></ion-icon> Cache driver</span>
+        <div class="admin-stat-value" id="monCacheDriver">—</div>
+        <div class="admin-stat-meta" id="monCacheMeta">—</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="server-outline"></ion-icon> Database quota</span>
+        <div class="admin-stat-value" id="monDbQuota">—</div>
+        <div class="admin-stat-meta" id="monDbQuotaMeta">—</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="logo-youtube"></ion-icon> YouTube quota</span>
+        <div class="admin-stat-value" id="monYtQuota">—</div>
+        <div class="admin-stat-meta" id="monYtQuotaMeta">—</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="speedometer-outline"></ion-icon> Event loop p99</span>
+        <div class="admin-stat-value" id="monLoop">—</div>
+        <div class="admin-stat-meta" id="monLoopMeta">—</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="hardware-chip-outline"></ion-icon> Memory</span>
+        <div class="admin-stat-value" id="monMemory">—</div>
+        <div class="admin-stat-meta" id="monMemoryMeta">—</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="radio-outline"></ion-icon> SSE clients</span>
+        <div class="admin-stat-value" id="monClients">—</div>
+        <div class="admin-stat-meta">live connections</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="warning-outline"></ion-icon> Alerts</span>
+        <div class="admin-stat-value" id="monAlertCount">—</div>
+        <div class="admin-stat-meta">active warnings</div>
+      </div>
+    </div>
+
+    <section class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Active sessions</span>
+        <span class="admin-count" id="monSessionCount">—</span>
+      </div>
+      <div class="admin-panel-body admin-panel-body--flush">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Name</th><th>IP</th><th>Device</th><th>Started</th><th>Last seen</th><th>Expires</th><th></th></tr>
+            </thead>
+            <tbody id="monSessionBody">
+              <tr><td colspan="7" class="admin-muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Quota</span>
+          <span class="admin-count">UTC day</span>
+        </div>
+        <div class="admin-panel-body admin-stack">
+          <div class="admin-progress">
+            <div class="admin-progress-head"><span>Database</span><strong id="monDbBarText">—</strong></div>
+            <div class="admin-progress-track"><div class="admin-progress-fill" id="monDbBar" style="width:0"></div></div>
+            <span class="admin-hint" id="monDbBarMeta">—</span>
+          </div>
+          <div class="admin-progress">
+            <div class="admin-progress-head"><span>YouTube</span><strong id="monYtBarText">—</strong></div>
+            <div class="admin-progress-track"><div class="admin-progress-fill" id="monYtBar" style="width:0"></div></div>
+            <span class="admin-hint" id="monYtBarMeta">—</span>
+          </div>
+          <div class="admin-alert admin-alert--info">
+            <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+            <span>YouTube sync runs on a cron schedule and paginates the uploads playlist instead of using search, keeping the 500/day plan well within limits.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Cache</span>
+          <button class="btn btn-ghost btn-sm" type="button" id="monCacheClear">Clear cache</button>
+        </div>
+        <div class="admin-panel-body">
+          <dl class="admin-dl" id="monCacheInfo"></dl>
+        </div>
+      </section>
+    </div>
+
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Audit trail</span>
+          <span class="admin-count" id="monAuditCount">—</span>
+        </div>
+        <div class="admin-panel-body admin-panel-body--flush">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Action</th><th>Actor</th><th>Severity</th><th>IP</th><th>When</th></tr>
+              </thead>
+              <tbody id="monAuditBody">
+                <tr><td colspan="5" class="admin-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Runtime</span>
+          <span class="admin-count" id="monGenerated">—</span>
+        </div>
+        <div class="admin-panel-body">
+          <dl class="admin-dl" id="monSystem"></dl>
+        </div>
+      </section>
+    </div>
+
+    <section class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Live event stream</span>
+        <span class="admin-count" id="monEventsCount">—</span>
+      </div>
+      <div class="admin-panel-body admin-panel-body--flush">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Type</th><th>Payload</th><th>When</th></tr></thead>
+            <tbody id="monEventsBody">
+              <tr><td colspan="3" class="admin-muted">No events yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/shell.js"></script>
+  <script src="/Admin/monitoring/monitoring.js"></script>
+</body>
+
+</html>

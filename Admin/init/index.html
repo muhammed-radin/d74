@@ -1,75 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>d74 Edits | Admin Installer </title>
-  <link rel="shortcut icon" type="image/x-icon" href="../../logo.png">
+  <title>D74 Edits | Admin installer</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
 
-  <link rel="stylesheet" href="../../view/app.css">
-  <link rel="stylesheet" href="init.css">
-  <link rel="stylesheet" href="../shell.css">
-
-  <script type="text/javascript" charset="utf-8">
-    if (localStorage.getItem('admin')) {} else {
-      window.location.href = '../admin_login'
-    }
-  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
 
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  <script src="../../view/alert.js"></script>
-
 </head>
 
-<body>
-  <nav>
-    <img class="nav-logo" src="../../logo.png" alt="" aria-hidden="true">
-      <div class="title" animation="true">D74 Edits <b>Installer</b></div>
-    <div class="right-icons">
-      <ion-icon name="options-outline" id="menuOpener"></ion-icon>
-    </div>
-  </nav>
+<body class="dark admin-body" data-admin-page="install" data-admin-title="Installer">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
 
-  <div class="left-bar">
-    <div class="left-bar-close" id="leftBarCloser">
-      <ion-icon name="close-circle-outline"></ion-icon>
-    </div>
-    <div class="left-box" onclick="redirctTo('../../explore')">
-      <div class="link">
-        <p>Explore</p>
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Add a clip</span>
+        <h2>Installer</h2>
+        <p>Fetch metadata for a YouTube clip and create the database record used by the public site.</p>
       </div>
-      <div class="link" onclick="redirctTo('../../settings')">
-        <p>Settings</p>
-      </div>
-      <div class="link">
-        <p>Create Post</p>
-      </div>
-      <div class="link">
-        <p>YouTube</p>
+      <div class="admin-head-actions">
+        <a class="btn btn-ghost btn-sm" href="/Admin/videos/">Back to videos</a>
       </div>
     </div>
-  </div>
 
-  <div class="body">
-    <div class="center">
-      <progress id="load" max="100" value="5"></progress>
-      <p class="subtitle" id="sub">Installing...</p>
+    <div class="admin-alert admin-alert--info" id="installStatus" role="status">
+      <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+      <span>Waiting for a video id.</span>
     </div>
-  </div>
 
-  <script>
-    heading = "D74 Edits <b>Installer</b>"
-  </script>
-  <script>
-    nowUrl = '../'
-  </script>
-  <script src="../../view/d74.js"></script>
-  <script src="../../view/app.js">
-    nowUrl = '../'
-  </script>
-  <script src="init.js"></script>
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Source clip</span>
+          <span class="admin-badge" id="installSource">—</span>
+        </div>
+        <div class="admin-panel-body" id="installPreview">
+          <form class="admin-form" id="lookupForm">
+            <div class="admin-field">
+              <label class="admin-label" for="lookupId">YouTube video id</label>
+              <input class="admin-input" id="lookupId" placeholder="e.g. T-TSJVgRmtA" maxlength="20"
+                autocapitalize="none" spellcheck="false">
+              <span class="admin-hint">Open a clip from the Videos page to prefill this.</span>
+            </div>
+            <div class="admin-actions">
+              <button class="btn btn-primary" type="submit">Load metadata</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Database record</span>
+          <span class="admin-count" id="installMetaState">Not saved</span>
+        </div>
+        <div class="admin-panel-body">
+          <form class="admin-form" id="installForm">
+            <div class="admin-form-grid">
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="installTitle">Title</label>
+                <input class="admin-input" id="installTitle" maxlength="300" required>
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="installDate">Published</label>
+                <input class="admin-input" id="installDate" placeholder="2026-01-01T00:00:00Z">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="installChannel">Channel</label>
+                <input class="admin-input" id="installChannel" maxlength="120">
+              </div>
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="installThumb">Thumbnail URL</label>
+                <input class="admin-input" id="installThumb" maxlength="2000">
+              </div>
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="installDescription">Description</label>
+                <textarea class="admin-textarea" id="installDescription" maxlength="4000"></textarea>
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="installUrl">Download URL</label>
+                <input class="admin-input" id="installUrl" maxlength="2000" placeholder="Optional direct file link">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="installPassword">Download password</label>
+                <input class="admin-input" id="installPassword" maxlength="120" placeholder="Optional unlock password">
+              </div>
+            </div>
+
+            <div class="admin-error" id="installError" role="alert"></div>
+
+            <div class="admin-actions">
+              <button class="btn btn-primary" type="submit" id="installSave" disabled>Create record</button>
+              <a class="btn btn-ghost" id="installYoutube" href="#" target="_blank" rel="noopener" hidden>Open on YouTube</a>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </template>
+
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/shell.js"></script>
+  <script src="/Admin/init/init.js"></script>
 </body>
 
 </html>

@@ -1,66 +1,113 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>d74 Edits | Admin Themes </title>
-  <link rel="shortcut icon" type="image/x-icon" href="../../logo.png">
+  <title>D74 Edits | Admin themes</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
 
-  <link rel="stylesheet" href="../../view/app.css">
-  <link rel="stylesheet" href="themes.css">
-  <link rel="stylesheet" href="../shell.css">
-
-  <script type="text/javascript" charset="utf-8">
-    if (localStorage.getItem('admin')) {} else {
-      window.location.href = '../admin_login'
-    }
-  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
 
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  <script src="../../view/alert.js"></script>
-  
 </head>
 
-<body>
-  <nav>
-    <img class="nav-logo" src="../../logo.png" alt="" aria-hidden="true">
-      <div class="title" animation="true">D74 Edits <b>Themes</b></div>
-    <div class="right-icons">
-      <ion-icon name="add-outline"></ion-icon>
-      <ion-icon name="options-outline" id="menuOpener"></ion-icon>
-    </div>
-  </nav>
+<body class="dark admin-body" data-admin-page="themes" data-admin-title="Themes">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
 
-  <div class="left-bar">
-    <div class="left-bar-close" id="leftBarCloser">
-      <ion-icon name="close-circle-outline"></ion-icon>
-    </div>
-    <div class="left-box" onclick="redirctTo('../../explore')">
-      <div class="link">
-        <p>Explore</p>
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Curated collections</span>
+        <h2>Themes</h2>
+        <p>Group clips into editorial collections. Each theme stores its own accent and YouTube id list.</p>
       </div>
-      <div class="link" onclick="redirctTo('../../settings')">
-        <p>Settings</p>
-      </div>
-      <div class="link">
-        <p>Create Post</p>
-      </div>
-      <div class="link">
-        <p>YouTube</p>
+      <div class="admin-head-actions">
+        <button class="btn btn-ghost btn-sm" type="button" id="themesRefresh">
+          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Refresh
+        </button>
       </div>
     </div>
-  </div>
-  
-  <div class="body">
-    <h2 style="margin: 1.5rem">Coming Soon</h2>
-  </div>
 
-  <script>heading = "D74 Edits <b>Themes</b>"</script>
-  <script>nowUrl = '../'</script>
-  <script src="../../view/app.js">
-  </script>
+    <div class="admin-grid admin-grid-2">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title" id="themeFormTitle">New theme</span>
+          <button class="btn btn-ghost btn-sm" type="button" id="themeReset">Clear</button>
+        </div>
+        <div class="admin-panel-body">
+          <form class="admin-form" id="themeForm" novalidate>
+            <div class="admin-form-grid">
+              <div class="admin-field">
+                <label class="admin-label" for="themeName">Name</label>
+                <input class="admin-input" id="themeName" maxlength="120" placeholder="Messi miracles" required>
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="themeSlug">Slug</label>
+                <input class="admin-input" id="themeSlug" maxlength="120" placeholder="messi-miracles">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="themeAccent">Accent</label>
+                <input class="admin-input" id="themeAccent" maxlength="40" placeholder="#d7ff3f">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="themeUpdated">Updated</label>
+                <input class="admin-input" id="themeUpdated" value="Set automatically" disabled>
+              </div>
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="themeDescription">Description</label>
+                <textarea class="admin-textarea" id="themeDescription" maxlength="2000"
+                  placeholder="A short editorial description."></textarea>
+              </div>
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="themeYtids">YouTube ids</label>
+                <textarea class="admin-textarea" id="themeYtids"
+                  placeholder="One id per line, or comma separated"></textarea>
+                <span class="admin-hint">Ids are validated and capped at 200 entries.</span>
+              </div>
+            </div>
+
+            <div class="admin-error" id="themeError" role="alert"></div>
+
+            <div class="admin-actions">
+              <button class="btn btn-primary" type="submit" id="themeSave">Create theme</button>
+              <button class="btn btn-danger" type="button" id="themeDelete" hidden>Delete</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Existing themes</span>
+          <span class="admin-count" id="themesCount">—</span>
+        </div>
+        <div class="admin-panel-body admin-panel-body--flush">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Name</th><th>Slug</th><th>Accent</th><th>Clips</th><th>Updated</th><th></th></tr>
+              </thead>
+              <tbody id="themesBody">
+                <tr><td colspan="6" class="admin-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </template>
+
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/shell.js"></script>
+  <script src="/Admin/themes/themes.js"></script>
 </body>
 
 </html>

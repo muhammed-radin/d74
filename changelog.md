@@ -126,3 +126,18 @@
 - added anime-driven counters, scroll reveals, pointer tilt, stage spotlight and magnetic buttons
 - added reading-progress line, rotating logo, play pulse, icon pop, shine sweep and underline hovers
 - added a scroll cue, short-screen hero fallback and reduced-motion / no-CDN fallbacks
+
+### 0Z ( Express rebuild, secure admin, analytics & caching )
+- replaced the single-file server with an Express app, routers, structured logging and graceful shutdown
+- added Helmet CSP, CORS origin control, cross-origin mutation guard, request ids and strict body limits
+- rebuilt administrator auth as server-side sessions: httpOnly SameSite=Strict cookie, CSRF tokens, idle + absolute expiry, UA binding, rotation, max sessions and global revocation
+- added scrypt `ADMIN_PASSWORD_HASH` support with a plaintext fallback hashed at boot; removed the session id from every API response
+- added a metered data layer with Redis/in-memory cache, stale-while-revalidate, single-flight reads and write invalidation
+- added quota tracking for restdb and YouTube with optional hard stops
+- added an SSE event bus and event-driven refresh for admin and public pages
+- added a quota-aware multi-channel YouTube cron sync using uploads-playlist pagination instead of search
+- added the admin dashboard, analytics, monitoring, videos, accounts, themes, installer and editor pages
+- rebuilt the admin as a shared, responsive, completely animation-free shell with mobile navigation
+- added per-address login throttling, audit trail, active-session management and cache controls
+- kept `pw` and `url` out of public video responses and exposed only a computed `downloadable` flag
+- added `npm run check`, a full README rewrite and an updated `.env.example`

@@ -4,130 +4,225 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>D74 Edits | Admin</title>
-  <link rel="shortcut icon" type="image/x-icon" href="../logo.png">
+  <title>D74 Edits | Admin dashboard</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#08090b">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="../view/app.css">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
 
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 
-<body class="dark">
-  <div class="ambient" aria-hidden="true"></div>
+<body class="dark admin-body" data-admin-page="dashboard" data-admin-title="Dashboard">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
 
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a class="brand" href="./" aria-label="Admin home">
-        <span class="brand-mark"><img src="../logo.png" alt="" aria-hidden="true"></span>
-        <span class="brand-text">
-          <span class="brand-name">D74 Edits</span>
-          <span class="brand-sub">Admin</span>
-        </span>
-      </a>
-
-      <div class="topbar-actions">
-        <span class="badge badge-accent admin-badge">
-          <ion-icon name="shield-checkmark-outline"></ion-icon>
-          Secure session
-        </span>
-        <button class="icon-btn" data-theme-toggle aria-label="Toggle colour theme">
-          <ion-icon name="sunny-outline" data-theme-icon></ion-icon>
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Live overview</span>
+        <h2>Control room</h2>
+        <p>Traffic, database quota, YouTube sync and administrator sessions in one place.</p>
+      </div>
+      <div class="admin-head-actions">
+        <span class="admin-count" id="dashUpdated">Loading…</span>
+        <button class="btn btn-ghost btn-sm" type="button" id="dashRefresh">
+          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Refresh
         </button>
-        <a class="btn btn-ghost btn-sm" href="../explore/">View site</a>
-        <button class="btn btn-danger btn-sm" type="button" id="adminLogout">Log out</button>
       </div>
     </div>
-  </header>
 
-  <main class="page">
-    <div class="container">
-      <section class="hero admin-hero" data-reveal>
-        <span class="hero-eyebrow">
-          <span class="dot"><ion-icon name="speedometer-outline"></ion-icon></span>
-          Control room
-        </span>
-        <h1 class="hero-title">Admin dashboard.</h1>
-        <p class="hero-sub">Manage clips, themes and accounts. Every action is authenticated with a signed session token.</p>
-      </section>
+    <div class="admin-stack" id="dashWarnings" aria-live="polite"></div>
 
-      <section class="admin-stats" aria-label="Overview" data-reveal>
-        <div class="panel admin-stat">
-          <span class="stat-label">Clips</span>
-          <strong class="stat-value" id="statVideos">—</strong>
-        </div>
-        <div class="panel admin-stat">
-          <span class="stat-label">Accounts</span>
-          <strong class="stat-value" id="statAccounts">—</strong>
-        </div>
-        <div class="panel admin-stat">
-          <span class="stat-label">Themes</span>
-          <strong class="stat-value" id="statThemes">—</strong>
-        </div>
-        <div class="panel admin-stat">
-          <span class="stat-label">Session</span>
-          <strong class="stat-value" id="statSession">Active</strong>
-        </div>
-      </section>
+    <div class="admin-stats admin-mt">
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="videocam-outline"></ion-icon> Videos</span>
+        <div class="admin-stat-value" id="statVideos">—</div>
+        <div class="admin-stat-meta"><span id="statDownloadable">—</span> downloadable</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="people-outline"></ion-icon> Accounts</span>
+        <div class="admin-stat-value" id="statAccounts">—</div>
+        <div class="admin-stat-meta">registered members</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="pulse-outline"></ion-icon> Requests / 24h</span>
+        <div class="admin-stat-value" id="statRequests">—</div>
+        <div class="admin-stat-meta"><span id="statRpm">—</span> per minute</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="person-add-outline"></ion-icon> Visitors / 24h</span>
+        <div class="admin-stat-value" id="statVisitors">—</div>
+        <div class="admin-stat-meta">hashed, no raw IP stored</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="flash-outline"></ion-icon> Cache hit rate</span>
+        <div class="admin-stat-value" id="statCache">—</div>
+        <div class="admin-stat-meta" id="statCacheDriver">—</div>
+      </div>
+      <div class="admin-stat" id="statErrorsCard">
+        <span class="admin-stat-label"><ion-icon name="warning-outline"></ion-icon> Error rate</span>
+        <div class="admin-stat-value" id="statErrors">—</div>
+        <div class="admin-stat-meta"><span id="statAvgMs">—</span> avg response</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="shield-checkmark-outline"></ion-icon> Sessions</span>
+        <div class="admin-stat-value" id="statSessions">—</div>
+        <div class="admin-stat-meta">active administrators</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="radio-outline"></ion-icon> Live clients</span>
+        <div class="admin-stat-value" id="statEvents">—</div>
+        <div class="admin-stat-meta">SSE connections</div>
+      </div>
+    </div>
 
-      <section class="section" aria-labelledby="manageTitle">
-        <div class="section-head" data-reveal>
-          <div>
-            <h2 class="section-title" id="manageTitle">Manage</h2>
-            <p class="section-desc">Everything you need to run D74 Edits.</p>
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Requests and errors</span>
+          <span class="admin-count" id="dashChartMeta">Last 24 hours</span>
+        </div>
+        <div class="admin-panel-body">
+          <div class="admin-chart" id="dashChart"></div>
+          <div class="admin-row admin-mt-sm">
+            <span class="admin-badge admin-badge--accent">Requests</span>
+            <span class="admin-badge admin-badge--error">Errors</span>
           </div>
         </div>
+      </section>
 
-        <div class="admin-grid">
-          <a class="admin-tile" href="videos/" data-reveal>
-            <span class="tile-icon"><ion-icon name="videocam-outline"></ion-icon></span>
-            <div>
-              <h3>Videos</h3>
-              <p>Browse the YouTube archive and publish new downloadable clips.</p>
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Daily quota</span>
+          <span class="admin-count">resets at midnight UTC</span>
+        </div>
+        <div class="admin-panel-body admin-stack">
+          <div class="admin-progress">
+            <div class="admin-progress-head">
+              <span>Database requests</span>
+              <strong id="quotaDbText">—</strong>
             </div>
-            <ion-icon class="arrow" name="arrow-forward-outline"></ion-icon>
-          </a>
-
-          <a class="admin-tile" href="accounts/" data-reveal>
-            <span class="tile-icon"><ion-icon name="people-outline"></ion-icon></span>
-            <div>
-              <h3>Accounts</h3>
-              <p>Review members, their signup dates and account status.</p>
+            <div class="admin-progress-track"><div class="admin-progress-fill" id="quotaDbBar" style="width:0"></div></div>
+            <span class="admin-hint" id="quotaDbMeta">—</span>
+          </div>
+          <div class="admin-progress">
+            <div class="admin-progress-head">
+              <span>YouTube API requests</span>
+              <strong id="quotaYoutubeText">—</strong>
             </div>
-            <ion-icon class="arrow" name="arrow-forward-outline"></ion-icon>
-          </a>
-
-          <a class="admin-tile" href="themes/" data-reveal>
-            <span class="tile-icon"><ion-icon name="brush-outline"></ion-icon></span>
-            <div>
-              <h3>Themes</h3>
-              <p>Curate the themed collections shown around the site.</p>
-            </div>
-            <ion-icon class="arrow" name="arrow-forward-outline"></ion-icon>
-          </a>
-
-          <a class="admin-tile" href="init/" data-reveal>
-            <span class="tile-icon"><ion-icon name="cloud-upload-outline"></ion-icon></span>
-            <div>
-              <h3>Install a clip</h3>
-              <p>Paste a YouTube ID to create a new downloadable clip entry.</p>
-            </div>
-            <ion-icon class="arrow" name="arrow-forward-outline"></ion-icon>
-          </a>
+            <div class="admin-progress-track"><div class="admin-progress-fill" id="quotaYoutubeBar" style="width:0"></div></div>
+            <span class="admin-hint" id="quotaYoutubeMeta">—</span>
+          </div>
+          <div class="admin-alert admin-alert--info">
+            <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+            <span>Reads are cached and coalesced. The database is only contacted when a cache entry is missing or stale.</span>
+          </div>
         </div>
       </section>
     </div>
-  </main>
 
-  <script src="../view/d74.js"></script>
-  <script src="../view/app.js"></script>
-  <script src="../view/ui.js"></script>
-  <script src="admin_main.js"></script>
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">YouTube sync</span>
+          <span class="admin-badge" id="syncStatus">—</span>
+        </div>
+        <div class="admin-panel-body admin-stack">
+          <div id="syncChannels" class="admin-stack"></div>
+          <div class="admin-actions">
+            <button class="btn btn-primary btn-sm" type="button" id="syncNow">
+              <ion-icon name="sync-outline" aria-hidden="true"></ion-icon> Sync now
+            </button>
+            <button class="btn btn-ghost btn-sm" type="button" id="syncDry">
+              <ion-icon name="beaker-outline" aria-hidden="true"></ion-icon> Dry run
+            </button>
+          </div>
+          <div class="admin-muted admin-mono" id="syncResult">No sync has run in this process yet.</div>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Recent audit events</span>
+          <a class="btn btn-ghost btn-sm" href="/Admin/monitoring/">Open monitoring</a>
+        </div>
+        <div class="admin-panel-body admin-panel-body--flush">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Action</th><th>Actor</th><th>Severity</th><th>When</th></tr>
+              </thead>
+              <tbody id="dashAudit">
+                <tr><td colspan="4" class="admin-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Newest videos</span>
+          <a class="btn btn-ghost btn-sm" href="/Admin/videos/">Manage videos</a>
+        </div>
+        <div class="admin-panel-body admin-panel-body--flush">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Title</th><th>Channel</th><th>Published</th><th>Download</th><th></th></tr>
+              </thead>
+              <tbody id="recentVideosBody">
+                <tr><td colspan="5" class="admin-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Runtime</span>
+          <span class="admin-count" id="dashRuntimeAt">—</span>
+        </div>
+        <div class="admin-panel-body">
+          <dl class="admin-dl" id="dashSystem">
+            <dt>Status</dt><dd>Loading…</dd>
+          </dl>
+        </div>
+      </section>
+    </div>
+
+    <section class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Active administrator sessions</span>
+        <span class="admin-count" id="dashSessionCount">—</span>
+      </div>
+      <div class="admin-panel-body admin-panel-body--flush">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Name</th><th>IP</th><th>Device</th><th>Started</th><th>Last seen</th><th>Expires</th><th></th></tr>
+            </thead>
+            <tbody id="dashSessions">
+              <tr><td colspan="7" class="admin-muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/shell.js"></script>
+  <script src="/Admin/admin_main.js"></script>
 </body>
 
 </html>

@@ -4,88 +4,89 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>D74 Edits | Admin login</title>
-  <link rel="shortcut icon" type="image/x-icon" href="../../logo.png">
+  <title>D74 Edits | Administrator sign in</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#08090b">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="../../view/app.css">
-  <link rel="stylesheet" href="../admin.css">
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
 
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 
-<body class="dark">
-  <div class="ambient" aria-hidden="true"></div>
-
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a class="brand" href="../../" aria-label="D74 Edits home">
-        <span class="brand-mark"><img src="../../logo.png" alt="" aria-hidden="true"></span>
-        <span class="brand-text">
-          <span class="brand-name">D74 Edits</span>
-          <span class="brand-sub">Admin login</span>
-        </span>
+<body class="dark admin-body admin-login-page" data-admin-page="login" data-admin-title="Sign in">
+  <main class="admin-login-shell">
+    <section class="admin-login-brand">
+      <a class="admin-brand" href="/">
+        <span class="admin-brand-logo"><img src="/logo.png" alt="D74 Edits"></span>
+        <span class="admin-brand-text"><strong>D74 Edits</strong><small>Control room</small></span>
       </a>
-      <div class="topbar-actions">
-        <button class="icon-btn" data-theme-toggle aria-label="Toggle colour theme">
-          <ion-icon name="sunny-outline" data-theme-icon></ion-icon>
-        </button>
-        <a class="btn btn-ghost btn-sm" href="../../explore/">Back to site</a>
+
+      <div>
+        <span class="admin-kicker">Administrator access</span>
+        <h1>Sign in to the control room.</h1>
+        <p>Server-side sessions, CSRF protection, idle and absolute expiry, device binding and a complete audit trail.</p>
       </div>
-    </div>
-  </header>
 
-  <main class="auth-page">
-    <div class="auth-card" style="width:min(460px,100%)">
-      <section class="auth-main">
-        <div class="auth-head">
-          <span class="badge badge-accent" style="margin-bottom:14px">
-            <ion-icon name="shield-checkmark-outline"></ion-icon>
-            Restricted area
-          </span>
-          <h2>Admin sign in</h2>
-          <p>Use your administrator credentials to open the control room.</p>
+      <div class="admin-login-points">
+        <span><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon> httpOnly, SameSite=Strict session cookie</span>
+        <span><ion-icon name="key-outline" aria-hidden="true"></ion-icon> scrypt-hashed administrator password</span>
+        <span><ion-icon name="time-outline" aria-hidden="true"></ion-icon> Automatic idle and absolute expiry</span>
+        <span><ion-icon name="list-outline" aria-hidden="true"></ion-icon> Every action written to the audit log</span>
+      </div>
+    </section>
+
+    <section class="admin-login-card">
+      <div>
+        <span class="admin-kicker">D74 Edits admin</span>
+        <h2>Welcome back</h2>
+        <p class="admin-muted">Use the administrator credentials configured in the server environment.</p>
+      </div>
+
+      <form class="admin-form" id="adminForm" novalidate>
+        <div class="admin-field">
+          <label class="admin-label" for="username">Username</label>
+          <input class="admin-input" id="username" name="username" type="text" autocomplete="username"
+            autocapitalize="none" spellcheck="false" placeholder="admin" required>
         </div>
 
-        <form class="form" id="adminForm" novalidate>
-          <div class="form-error" id="formError" role="alert"></div>
-
-          <div class="field">
-            <label class="label" for="username">Username</label>
-            <input class="input" type="text" id="username" name="username" placeholder="Administrator username"
-              autocomplete="username" required>
+        <div class="admin-field">
+          <label class="admin-label" for="password">Password</label>
+          <div style="position:relative">
+            <input class="admin-input" id="password" name="password" type="password"
+              autocomplete="current-password" placeholder="••••••••••••" required style="padding-right:46px">
+            <button class="admin-tab" type="button" id="passwordToggle"
+              style="position:absolute;right:4px;top:50%;transform:translateY(-50%);padding:6px 9px"
+              aria-label="Show password" aria-pressed="false">Show</button>
           </div>
-
-          <div class="field">
-            <label class="label" for="password">Password</label>
-            <div class="input-wrap">
-              <input class="input" type="password" id="password" name="password" placeholder="Administrator password"
-                autocomplete="current-password" required>
-              <button class="input-toggle" type="button" data-password-toggle="password" aria-label="Show password">
-                <ion-icon name="eye-outline"></ion-icon>
-              </button>
-            </div>
-          </div>
-
-          <button class="btn btn-primary btn-block" type="submit" id="submit">Sign in</button>
-        </form>
-
-        <div class="admin-login-note" style="margin-top:18px">
-          <ion-icon name="lock-closed-outline"></ion-icon>
-          <span>Sessions are signed on the server and expire automatically. Credentials are never stored in the browser.</span>
         </div>
-      </section>
-    </div>
+
+        <div class="admin-error" id="formError" role="alert"></div>
+
+        <button class="btn btn-primary btn-block" type="submit" id="submit">
+          <ion-icon name="log-in-outline" aria-hidden="true"></ion-icon>
+          <span>Sign in</span>
+        </button>
+      </form>
+
+      <div class="admin-login-note" id="loginNote">
+        Login attempts are rate-limited per address. Sessions are stored on the server; signing out revokes this session
+        immediately.
+      </div>
+
+      <div class="admin-login-foot">
+        <a href="/">← Back to D74 Edits</a>
+        <span class="admin-mono">D74 control room</span>
+      </div>
+    </section>
   </main>
 
-  <script src="../../view/d74.js"></script>
-  <script src="../../view/app.js"></script>
-  <script src="../../view/ui.js"></script>
-  <script src="../admin.js"></script>
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/admin.js"></script>
 </body>
 
 </html>

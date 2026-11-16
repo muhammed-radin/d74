@@ -1,0 +1,240 @@
+"use strict";
+
+/* ------------------------------------------------------------------
+   D74 Edits — central configuration
+   Loads .env once and normalises every tunable the server needs.
+------------------------------------------------------------------ */
+
+const path = require("path");
+const fs = require("fs");
+const dotenv = require("dotenv");
+
+const ROOT = path.resolve(__dirname, "..");
+dotenv.config({ path: path.join(ROOT, ".env") });
+
+const env = process.env;
+
+function num(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function bool(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
+}
+
+function csv(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+const NODE_ENV = env.NODE_ENV || "development";
+const IS_PROD = NODE_ENV === "production";
+const IS_TEST = NODE_ENV === "test";
+
+/* ---------------------------- channels ---------------------------- */
+
+const FALLBACK_CHANNEL = "UCFodctpE1wtpFhWw716uCgg";
+
+function normaliseChannel(entry, index) {
+  if (!entry) return null;
+  if (typeof entry === "string") {
+    const id = entry.trim();
+    if (!/^[A-Za-z0-9_-]{6,64}$/.test(id)) return null;
+    return { id, name: "Channel " + (index + 1) };
+  }
+  const id = String(entry.id || entry.channelId || entry.channel || "").trim();
+  if (!/^[A-Za-z0-9_-]{6,64}$/.test(id)) return null;
+  return {
+    id,
+    name: String(entry.name || entry.title || "Channel " + (index + 1)).slice(0, 80),
+    uploadsPlaylistId: String(entry.uploadsPlaylistId || "").slice(0, 80) || undefined,
+  };
+}
+
+function readChannelFile() {
+  const file = path.join(ROOT, "server", "data", "youtube-channels.json");
+  if (!fs.existsSync(file)) return [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+    const list = Array.isArray(parsed) ? parsed : parsed.channels;
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.warn("[config] Could not read server/data/youtube-channels.json:", error.message);
+    return [];
+  }
+}
+
+function buildChannels() {
+  const merged = [];
+  const seen = new Set();
+
+  const add = (entry) => {
+    const channel = normaliseChannel(entry, merged.length);
+    if (!channel || seen.has(channel.id)) return;
+    seen.add(channel.id);
+    merged.push(channel);
+  };
+
+  readChannelFile().forEach(add);
+
+  const envChannels = csv(env.YOUTUBE_CHANNEL_IDS || env.YOUTUBE_CHANNEL_ID);
+  envChannels.forEach((id, index) => add({ id, name: "YouTube " + (index + 1) }));
+
+  if (!merged.length && !IS_TEST) add({ id: FALLBACK_CHANNEL, name: "D74 Edits" });
+
+  return merged;
+}
+
+/* ------------------------- admin password -------------------------- */
+
+function parsePasswordHash(value) {
+  if (!value) return null;
+  const parts = String(value).split("$");
+  if (parts.length !== 3 || parts[0] !== "scrypt") return null;
+  if (!parts[1] || !parts[2]) return null;
+  return { salt: parts[1], hash: parts[2] };
+}
+
+/* ---------------------------- required ----------------------------- */
+
+const adminPasswordHash = parsePasswordHash(env.ADMIN_PASSWORD_HASH);
+const sessionSecret = env.SESSION_SECRET || (IS_PROD ? "" : "d74-dev-only-" + require("crypto").randomBytes(16).toString("hex"));
+
+const required = [
+  ["SESSION_SECRET", Boolean(env.SESSION_SECRET)],
+  ["RESTDB_API_KEY", Boolean(env.RESTDB_API_KEY)],
+  ["RAPIDAPI_KEY", Boolean(env.RAPIDAPI_KEY)],
+  ["ADMIN_PASSWORD or ADMIN_PASSWORD_HASH", Boolean(env.ADMIN_PASSWORD || adminPasswordHash)],
+];
+
+const missing = required.filter(([, present]) => !present).map(([name]) => name);
+if (missing.length && !IS_TEST) {
+  const message =
+    "\n⚠  Missing environment variables: " + missing.join(", ") +
+    "\n   Copy .env.example to .env and fill them in.\n";
+  if (IS_PROD) {
+    console.error(message);
+    process.exit(1);
+  } else {
+    console.warn(message);
+  }
+}
+
+if (!adminPasswordHash && env.ADMIN_PASSWORD) {
+  // The plaintext value never leaves this module; it is replaced by a
+  // salted scrypt hash at boot and compared in constant time per login.
+}
+
+const adminSessionHours = Math.max(1, Math.min(168, num(env.ADMIN_SESSION_HOURS, 12)));
+const adminIdleMinutes = Math.max(5, Math.min(adminSessionHours * 60, num(env.ADMIN_SESSION_IDLE_MINUTES, 45)));
+
+const config = {
+  root: ROOT,
+  env: NODE_ENV,
+  isProd: IS_PROD,
+  isTest: IS_TEST,
+  port: num(env.PORT, 3005),
+  trustProxy: env.TRUST_PROXY ? bool(env.TRUST_PROXY) : num(env.TRUST_PROXY_HOPS, 0),
+  publicOrigin: String(env.PUBLIC_ORIGIN || "").replace(/\/+$/, ""),
+
+  session: {
+    secret: sessionSecret,
+    cookieName: IS_PROD ? "__Host-d74.sid" : "d74.sid",
+    idleMinutes: adminIdleMinutes,
+    absoluteHours: adminSessionHours,
+    rotateMinutes: Math.max(5, num(env.ADMIN_ROTATE_MINUTES, 30)),
+    maxSessions: Math.max(1, num(env.ADMIN_MAX_SESSIONS, 5)),
+    bindUserAgent: bool(env.ADMIN_BIND_USER_AGENT, true),
+    bindIp: bool(env.ADMIN_BIND_IP, false),
+    secureCookie: bool(env.ADMIN_COOKIE_SECURE, IS_PROD),
+  },
+
+  admin: {
+    username: env.ADMIN_USERNAME || "admin",
+    password: env.ADMIN_PASSWORD || "",
+    passwordHash: adminPasswordHash,
+    maxLoginAttempts: Math.max(3, num(env.ADMIN_MAX_LOGIN_ATTEMPTS, 5)),
+    windowMinutes: Math.max(1, num(env.ADMIN_LOGIN_WINDOW_MINUTES, 15)),
+  },
+
+  redis: {
+    url: env.REDIS_URL || "",
+    enabled: bool(env.REDIS_ENABLED, Boolean(env.REDIS_URL)),
+    tls: bool(env.REDIS_TLS, false),
+    connectTimeoutMs: Math.max(500, num(env.REDIS_CONNECT_TIMEOUT_MS, 3000)),
+  },
+
+  cache: {
+    prefix: env.CACHE_PREFIX || "d74:",
+    maxEntries: Math.max(100, num(env.CACHE_MAX_ENTRIES, 5000)),
+    defaultTtl: Math.max(5, num(env.CACHE_DEFAULT_TTL, 60)),
+    dbTtl: Math.max(5, num(env.DB_CACHE_TTL, 60)),
+    dbStaleTtl: Math.max(0, num(env.DB_STALE_TTL, 300)),
+    youtubeTtl: Math.max(30, num(env.YOUTUBE_CACHE_TTL, 900)),
+    youtubeVideoTtl: Math.max(60, num(env.YOUTUBE_VIDEO_CACHE_TTL, 21600)),
+    analyticsTtl: Math.max(60, num(env.ANALYTICS_CACHE_TTL, 86400)),
+  },
+
+  db: {
+    baseUrl: String(env.RESTDB_BASE_URL || "").replace(/\/+$/, ""),
+    apiKey: env.RESTDB_API_KEY || "",
+    timeoutMs: Math.max(2000, num(env.DB_TIMEOUT_MS, 15000)),
+    dailyLimit: Math.max(0, num(env.DB_DAILY_LIMIT, 0)),
+    hardStop: bool(env.DB_QUOTA_HARD_STOP, false),
+    pageSize: Math.max(50, Math.min(1000, num(env.DB_PAGE_SIZE, 1000))),
+    allowlist: new Set(["account", "videos", "custom", "themes", "promotions"]),
+  },
+
+  youtube: {
+    host: env.YOUTUBE_RAPIDAPI_HOST || "youtube-v31.p.rapidapi.com",
+    dailyLimit: Math.max(0, num(env.YT_DAILY_LIMIT, 500)),
+    reserve: Math.max(0, num(env.YT_QUOTA_RESERVE, 20)),
+    syncCron: env.YT_SYNC_CRON || "17 */6 * * *",
+    syncTimezone: env.YT_SYNC_TIMEZONE || "UTC",
+    syncEnabled: bool(env.YT_SYNC_ENABLED, true),
+    syncOnStart: bool(env.YT_SYNC_ON_START, false),
+    syncMaxNew: Math.max(1, Math.min(100, num(env.YT_SYNC_MAX_NEW, 25))),
+    syncPages: Math.max(1, Math.min(10, num(env.YT_SYNC_PAGES, 1))),
+    syncOverlapHours: Math.max(1, num(env.YT_SYNC_OVERLAP_HOURS, 48)),
+    defaultPassword: String(env.YT_SYNC_DEFAULT_PASSWORD || ""),
+    requestTimeoutMs: Math.max(3000, num(env.YT_TIMEOUT_MS, 15000)),
+    channels: buildChannels(),
+  },
+
+  football: {
+    host: env.FOOTBALL_RAPIDAPI_HOST || "free-football-soccer-videos.p.rapidapi.com",
+    ttl: Math.max(30, num(env.FOOTBALL_CACHE_TTL, 120)),
+  },
+
+  analytics: {
+    salt: env.ANALYTICS_SALT || sessionSecret,
+    recentLimit: Math.max(20, num(env.ANALYTICS_RECENT_LIMIT, 250)),
+    auditLimit: Math.max(20, num(env.ANALYTICS_AUDIT_LIMIT, 250)),
+    minuteBuckets: 1440,
+    hourBuckets: 720,
+    dayBuckets: 120,
+    tickMs: Math.max(5000, num(env.ANALYTICS_TICK_MS, 15000)),
+  },
+
+  cors: {
+    origins: csv(env.CORS_ORIGINS),
+  },
+
+  logLevel: env.LOG_LEVEL || (IS_PROD ? "info" : "debug"),
+  rateLimits: {
+    globalWindowMs: Math.max(1000, num(env.RATE_LIMIT_WINDOW_MS, 60 * 1000)),
+    globalMax: Math.max(20, num(env.RATE_LIMIT_MAX, 600)),
+    apiMax: Math.max(10, num(env.API_RATE_LIMIT_MAX, 240)),
+    loginMax: Math.max(3, num(env.LOGIN_RATE_LIMIT_MAX, 12)),
+    adminLoginMax: Math.max(3, num(env.ADMIN_LOGIN_RATE_LIMIT_MAX, 6)),
+    unlockMax: Math.max(3, num(env.UNLOCK_RATE_LIMIT_MAX, 25)),
+    youtubeMax: Math.max(5, num(env.YOUTUBE_RATE_LIMIT_MAX, 60)),
+    dbWriteMax: Math.max(5, num(env.DB_WRITE_RATE_LIMIT_MAX, 90)),
+  },
+};
+
+module.exports = config;

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai",
+  "provider": {
+    "openai": {
+      "npm": "@ai-sdk/openai",
+      "name": "Ollama (Via OpenAI)",
+      "options": {
+        "baseURL": "http://127.0.0.1:11434/v1",
+        "apiKey": "ollama"
+      },
+      "models": {
+        "qwen2.5-coder:3b": {
+          "name": "Qwen 2.5 Coder 3B",
+          "tools": true
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D74 Edits | Admin analytics</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
+
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
+<body class="dark admin-body" data-admin-page="analytics" data-admin-title="Analytics">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
+
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Traffic intelligence</span>
+        <h2>Analytics</h2>
+        <p>Request volume, error rate, cache efficiency, visitor counts and the busiest paths.</p>
+      </div>
+      <div class="admin-head-actions">
+        <div class="admin-tabs" role="group" aria-label="Time range">
+          <button class="admin-tab" type="button" data-range="1h">1h</button>
+          <button class="admin-tab is-active" type="button" data-range="24h">24h</button>
+          <button class="admin-tab" type="button" data-range="7d">7d</button>
+          <button class="admin-tab" type="button" data-range="30d">30d</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" id="analyticsRefresh">
+          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="admin-stats">
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="pulse-outline"></ion-icon> Requests</span>
+        <div class="admin-stat-value" id="anaRequests">—</div>
+        <div class="admin-stat-meta" id="anaRangeLabel">Last 24 hours</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="speedometer-outline"></ion-icon> Average response</span>
+        <div class="admin-stat-value" id="anaAvg">—</div>
+        <div class="admin-stat-meta" id="anaPeak">—</div>
+      </div>
+      <div class="admin-stat" id="anaErrorsCard">
+        <span class="admin-stat-label"><ion-icon name="warning-outline"></ion-icon> Error rate</span>
+        <div class="admin-stat-value" id="anaErrors">—</div>
+        <div class="admin-stat-meta" id="anaErrorCount">—</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="flash-outline"></ion-icon> Cache hit rate</span>
+        <div class="admin-stat-value" id="anaCache">—</div>
+        <div class="admin-stat-meta" id="anaCacheDetail">—</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="person-add-outline"></ion-icon> Unique visitors</span>
+        <div class="admin-stat-value" id="anaVisitors">—</div>
+        <div class="admin-stat-meta">hashed per day</div>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="server-outline"></ion-icon> Cache driver</span>
+        <div class="admin-stat-value" id="anaDriver">—</div>
+        <div class="admin-stat-meta" id="anaDriverMeta">—</div>
+      </div>
+    </div>
+
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Requests over time</span>
+          <span class="admin-count" id="anaChartMeta">—</span>
+        </div>
+        <div class="admin-panel-body">
+          <div class="admin-chart" id="analyticsChart"></div>
+          <div class="admin-row admin-mt-sm">
+            <span class="admin-badge admin-badge--accent">Requests</span>
+            <span class="admin-badge admin-badge--error">Errors</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Status codes</span>
+          <span class="admin-count" id="anaStatusCount">—</span>
+        </div>
+        <div class="admin-panel-body" id="anaStatus"></div>
+      </section>
+    </div>
+
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Busiest paths</span>
+          <span class="admin-count">top 12</span>
+        </div>
+        <div class="admin-panel-body" id="anaPaths"></div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Daily quota</span>
+        </div>
+        <div class="admin-panel-body admin-stack">
+          <div class="admin-progress">
+            <div class="admin-progress-head"><span>Database</span><strong id="anaDbText">—</strong></div>
+            <div class="admin-progress-track"><div class="admin-progress-fill" id="anaDbBar" style="width:0"></div></div>
+            <span class="admin-hint" id="anaDbMeta">—</span>
+          </div>
+          <div class="admin-progress">
+            <div class="admin-progress-head"><span>YouTube</span><strong id="anaYtText">—</strong></div>
+            <div class="admin-progress-track"><div class="admin-progress-fill" id="anaYtBar" style="width:0"></div></div>
+            <span class="admin-hint" id="anaYtMeta">—</span>
+          </div>
+          <dl class="admin-dl" id="anaSystem"></dl>
+        </div>
+      </section>
+    </div>
+
+    <section class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Recent requests</span>
+        <span class="admin-count" id="anaRecentCount">—</span>
+      </div>
+      <div class="admin-panel-body admin-panel-body--flush">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Time</th><th>Method</th><th>Path</th><th>Status</th><th>Latency</th><th>Cache</th></tr>
+            </thead>
+            <tbody id="anaRecent">
+              <tr><td colspan="6" class="admin-muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/shell.js"></script>
+  <script src="/Admin/analytics/analytics.js"></script>
+</body>
+
+</html>

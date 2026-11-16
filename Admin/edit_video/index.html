@@ -1,80 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>d74 Edits | Edit Videos </title>
-  <link rel="shortcut icon" type="image/x-icon" href="../../logo.png">
+  <title>D74 Edits | Edit video</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
 
-  <link rel="stylesheet" href="../../view/app.css">
-  <link rel="stylesheet" href="edit_videos.css">
-  <link rel="stylesheet" href="../shell.css">
-
-  <script type="text/javascript" charset="utf-8">
-    if (localStorage.getItem('admin')) {} else {
-      window.location.href = '../admin_login'
-    }
-  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
 
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  <script src="../../view/alert.js"></script>
-
 </head>
 
-<body>
-  <nav>
-    <img class="nav-logo" src="../../logo.png" alt="" aria-hidden="true">
-      <div class="title" animation="true">D74 Edits <b>Edit</b></div>
-    <div class="right-icons">
-      <ion-icon name="save-outline"></ion-icon>
-      <ion-icon name="options-outline" id="menuOpener"></ion-icon>
-    </div>
-  </nav>
+<body class="dark admin-body" data-admin-page="editor" data-admin-title="Edit video">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
 
-  <div class="left-bar">
-    <div class="left-bar-close" id="leftBarCloser">
-      <ion-icon name="close-circle-outline"></ion-icon>
-    </div>
-    <div class="left-box" onclick="redirctTo('../../explore')">
-      <div class="link">
-        <p>Explore</p>
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Clip metadata</span>
+        <h2>Edit video</h2>
+        <p>Update the title, thumbnail, description and download details for this clip.</p>
       </div>
-      <div class="link" onclick="redirctTo('../../settings')">
-        <p>Settings</p>
-      </div>
-      <div class="link">
-        <p>YouTube</p>
+      <div class="admin-head-actions">
+        <a class="btn btn-ghost btn-sm" href="/Admin/videos/">Back to videos</a>
+        <a class="btn btn-ghost btn-sm" id="editOpen" href="#" target="_blank" rel="noopener" hidden>Public page</a>
       </div>
     </div>
-  </div>
 
-  <div class="form-center">
-    <div class="header">
-      <h3>D74 Edits</h3>
-      <p class="subtitle">Edit The Video</p>
+    <div class="admin-alert admin-alert--info" id="editStatus" role="status">
+      <ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>
+      <span>Loading the clip…</span>
     </div>
-    <div class="form">
-      <img src="../../visit/image.png" id="img" alt="img" disabled>
-      <input value="loading..." type="text" placeholder="Title" id="title" disabled>
-      <input value="loading..." type="text" placeholder="Video Id" id="sid" disabled>
-      <input value="loading..." type="text" placeholder="YouTube Id" id="ytid" disabled>
-      <input value="loading..." type="url" placeholder="Image Url" id="imgUrl" disabled>
-      <input value="loading..." type="url" placeholder="Video Url" id="vurl">
-      <input value="loading..." type="text" placeholder="Date" id="date" disabled>
-      <input value="loading..." type="text" placeholder="Password" id="password">
-      <button id="submit">Save</button>
-    </div>
-  </div>
 
-  <script>heading = "D74 Edits <b>Edit</b>"</script>
-  <script>nowUrl = '../'</script>
-  <script src="../../view/app.js">
-    nowUrl = '../'
-  </script>
-  <script src="../../view/d74.js"></script>
-  <script src="edit_videos.js"></script>
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Preview</span>
+          <span class="admin-badge" id="editDownloadable">—</span>
+        </div>
+        <div class="admin-panel-body" id="editPreview">
+          <div class="admin-video-card">
+            <div class="admin-video-thumb"><img src="/visit/image.png" alt="" id="editPreviewImg"></div>
+            <div class="admin-video-body">
+              <div class="admin-video-title" id="editPreviewTitle">Loading…</div>
+              <div class="admin-video-meta"><span id="editPreviewChannel">—</span><span id="editPreviewDate">—</span></div>
+            </div>
+          </div>
+          <dl class="admin-dl admin-mt-sm" id="editRecordInfo">
+            <dt>Record id</dt><dd>—</dd>
+            <dt>YouTube id</dt><dd>—</dd>
+            <dt>Source</dt><dd>—</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Metadata</span>
+          <span class="admin-count" id="editMetaState">—</span>
+        </div>
+        <div class="admin-panel-body">
+          <form class="admin-form" id="editForm">
+            <div class="admin-form-grid">
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="editTitle">Title</label>
+                <input class="admin-input" id="editTitle" maxlength="300" required>
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="editDate">Published</label>
+                <input class="admin-input" id="editDate">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="editChannel">Channel</label>
+                <input class="admin-input" id="editChannel" maxlength="120">
+              </div>
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="editThumb">Thumbnail URL</label>
+                <input class="admin-input" id="editThumb" maxlength="2000">
+              </div>
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="editDescription">Description</label>
+                <textarea class="admin-textarea" id="editDescription" maxlength="4000"></textarea>
+              </div>
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="editUrl">Download URL</label>
+                <input class="admin-input" id="editUrl" maxlength="2000" placeholder="Leave empty for page link only">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="editPassword">Download password</label>
+                <input class="admin-input" id="editPassword" maxlength="120">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="editYtid">YouTube id</label>
+                <input class="admin-input" id="editYtid" disabled>
+              </div>
+            </div>
+
+            <div class="admin-error" id="editError" role="alert"></div>
+
+            <div class="admin-actions">
+              <button class="btn btn-primary" type="submit" id="editSave">Save changes</button>
+              <button class="btn btn-danger" type="button" id="editDelete">Delete record</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </template>
+
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/shell.js"></script>
+  <script src="/Admin/edit_video/edit_videos.js"></script>
 </body>
 
 </html>

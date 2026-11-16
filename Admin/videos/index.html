@@ -1,94 +1,87 @@
-  <!DOCTYPE html>
-  <html>
+<!DOCTYPE html>
+<html lang="en">
 
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>d74 Edits | Admin Videos </title>
-    <link rel="shortcut icon" type="image/x-icon" href="../../logo.png">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D74 Edits | Admin videos</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
 
-    <link rel="stylesheet" href="../../view/app.css">
-    <link rel="stylesheet" href="video.css">
-  <link rel="stylesheet" href="../shell.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
 
-    <script type="text/javascript" charset="utf-8">
-      if (localStorage.getItem('admin')) {} else {
-        window.location.href = '../admin_login'
-      }
-    </script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
 
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-    <script src="../../view/alert.js"></script>
+<body class="dark admin-body" data-admin-page="videos" data-admin-title="Videos">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
-    <script>
-      if (window.dayjs && window.dayjs_plugin_relativeTime) {
-        dayjs.extend(dayjs_plugin_relativeTime);
-      }
-    </script>
-
-  </head>
-
-  <body>
-    <nav>
-      <img class="nav-logo" src="../../logo.png" alt="" aria-hidden="true">
-      <div class="title" animation="true">D74 Edits <b>Videos</b></div>
-      <div class="right-icons">
-        <ion-icon name="add-outline"></ion-icon>
-        <ion-icon name="options-outline" id="menuOpener"></ion-icon>
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Library and channel</span>
+        <h2>Videos</h2>
+        <p>Browse the database library or the live YouTube uploads feed. Install clips, edit metadata and remove records.</p>
       </div>
-    </nav>
-
-    <div class="left-bar">
-      <div class="left-bar-close" id="leftBarCloser">
-        <ion-icon name="close-circle-outline"></ion-icon>
-      </div>
-      <div class="left-box" onclick="redirctTo('../../explore')">
-        <div class="link">
-          <p>Explore</p>
-        </div>
-        <div class="link" onclick="redirctTo('../../settings')">
-          <p>Settings</p>
-        </div>
-        <div class="link">
-          <p>Create Post</p>
-        </div>
-        <div class="link">
-          <p>YouTube</p>
-        </div>
+      <div class="admin-head-actions">
+        <a class="btn btn-ghost btn-sm" href="/Admin/init/">Installer</a>
+        <button class="btn btn-primary btn-sm" type="button" id="videosSync">
+          <ion-icon name="sync-outline" aria-hidden="true"></ion-icon> Sync channel
+        </button>
       </div>
     </div>
 
-    <div class="body">
-      <!--div class="card">
-    <div class="card-date">20 Aug 2022</div>
-    <div class="card-img">
-      <img src="https://i.ytimg.com/vi/I6RrJmaLh0M/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB_5tpcek6OvFy8bwbPpScQHDESjg" alt="yt">
-    </div>
-    <div class="card-title">Pedri 2022/23 ● FREE CLIPS / NO WATERMARK ● FREE TO USE ● HD 1080</div>
-    <div class="card-opt-icon">
-      <ion-icon name="ellipsis-horizontal"></ion-icon>
-    </div>
-    <!div class="card-options">
-      <! /div-->
+    <div class="admin-panel">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar-group">
+          <div class="admin-tabs" role="group" aria-label="Video source">
+            <button class="admin-tab is-active" type="button" data-view="library">Database library</button>
+            <button class="admin-tab" type="button" data-view="channel">YouTube channel</button>
+          </div>
+          <span class="admin-count" id="videosCount">—</span>
+        </div>
+        <div class="admin-toolbar-group">
+          <select class="admin-select" id="videosFilter" aria-label="Library filter" style="width:auto">
+            <option value="all">All records</option>
+            <option value="downloadable">Downloadable</option>
+            <option value="page">Page link only</option>
+          </select>
+          <input class="admin-input admin-search" id="videosSearch" type="search"
+            placeholder="Search title, channel or YouTube id" aria-label="Search videos">
+          <button class="btn btn-ghost btn-sm" type="button" id="videosRefresh">Refresh</button>
+        </div>
+      </div>
+
+      <div class="admin-video-grid" id="videoGrid" aria-live="polite"></div>
+      <div id="videoState" hidden></div>
+
+      <div class="admin-panel-foot admin-spread">
+        <span class="admin-count" id="videoPageInfo">—</span>
+        <div class="admin-actions">
+          <button class="btn btn-ghost btn-sm" type="button" id="videoPrev" disabled>Previous</button>
+          <button class="btn btn-ghost btn-sm" type="button" id="videoNext" disabled>Next</button>
+        </div>
+      </div>
     </div>
 
-    <div class="load23"></div>
+    <div class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Sync status</span>
+        <span class="admin-badge" id="videoSyncStatus">—</span>
+      </div>
+      <div class="admin-panel-body admin-stack" id="videoSyncChannels"></div>
+    </div>
+  </template>
 
-    <script>
-      heading = "D74 Edits <b>Videos</b>"
-    </script>
-    <script>
-      nowUrl = '../'
-    </script>
-    <script src="../../view/app.js">
-      nowUrl = '../'
-    </script>
-    <script src="../../view/d74.js"></script>
-    <script src="old.card.structure.js"></script>
-    <script src="video.js"></script>
-  </body>
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/shell.js"></script>
+  <script src="/Admin/videos/video.js"></script>
+</body>
 
-  </html>
+</html>

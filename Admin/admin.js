@@ -1,70 +1,120 @@
 "use strict";
 
 /* ------------------------------------------------------------------
-   Admin login — credentials are verified by /api/admin/login and the
-   browser only ever receives a short-lived signed session token.
+   Administrator sign in
+   Credentials are verified by /api/admin/login. The browser receives an
+   httpOnly session cookie plus a CSRF token; no credential or token is
+   ever written to localStorage.
 ------------------------------------------------------------------ */
 
 (function () {
-  if (db.adminToken()) {
-    window.location.replace("../");
-    return;
-  }
-
   const form = document.getElementById("adminForm");
   const username = document.getElementById("username");
   const password = document.getElementById("password");
   const submit = document.getElementById("submit");
   const errorBox = document.getElementById("formError");
+  const toggle = document.getElementById("passwordToggle");
+  const note = document.getElementById("loginNote");
 
-  function parse(xhr) {
-    if (!xhr) return null;
-    if (typeof xhr.json === "function") return xhr.json();
-    try {
-      return JSON.parse(xhr.response);
-    } catch (_) {
-      return null;
-    }
+  const params = new URLSearchParams(window.location.search);
+  const reason = params.get("reason") || "";
+  const requestedNext = params.get("next") || "";
+
+  function safeNext(value) {
+    const text = String(value || "");
+    if (!text.startsWith("/Admin/")) return "/Admin/";
+    if (text.startsWith("//") || text.includes("\\") || text.includes("\n")) return "/Admin/";
+    return text;
   }
+
+  const nextUrl = safeNext(requestedNext);
 
   function showError(message) {
     errorBox.textContent = message;
     errorBox.classList.add("show");
   }
 
-  function loading(on) {
-    submit.disabled = on;
-    submit.classList.toggle("is-loading", on);
-    submit.innerHTML = on ? '<span class="loader-sml"></span> Signing in…' : "Sign in";
+  function clearError() {
+    errorBox.textContent = "";
+    errorBox.classList.remove("show");
   }
 
-  form.addEventListener("submit", async function (event) {
+  function loading(on) {
+    submit.disabled = on;
+    submit.setAttribute("aria-busy", String(on));
+    submit.querySelector("span").textContent = on ? "Signing in…" : "Sign in";
+  }
+
+  if (reason === "expired") {
+    showError("Your session expired. Sign in again to continue.");
+  } else if (reason === "revoked") {
+    showError("This session was revoked. Sign in again to continue.");
+  }
+
+  if (toggle) {
+    toggle.addEventListener("click", () => {
+      const showing = password.type === "text";
+      password.type = showing ? "password" : "text";
+      toggle.textContent = showing ? "Show" : "Hide";
+      toggle.setAttribute("aria-pressed", String(!showing));
+      toggle.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    });
+  }
+
+  db.adminSession()
+    .then((result) => {
+      if (result && result.ok) window.location.replace(nextUrl);
+    })
+    .catch(() => {});
+
+  [username, password].forEach((input) => {
+    input.addEventListener("input", clearError);
+  });
+
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    errorBox.classList.remove("show");
+    clearError();
 
     const user = username.value.trim();
     const pass = password.value;
-
     if (!user || !pass) {
-      showError("Enter both your username and password.");
+      showError("Enter both the username and password.");
       return;
     }
 
     loading(true);
-    const xhr = await db.adminLogin(user, pass);
-    loading(false);
-    const data = parse(xhr);
-
-    if (xhr.status === 200 && data && data.token) {
-      db.setAdminToken(data.token, { name: data.name || user });
-      window.location.href = "../";
-      return;
+    try {
+      const result = await db.adminLogin(user, pass);
+      const body = result.json() || {};
+      if (result.ok) {
+        window.location.replace(nextUrl);
+        return;
+      }
+      if (result.status === 429) {
+        showError("Too many attempts. Wait a few minutes before trying again.");
+      } else if (result.status === 503) {
+        showError(body.error || "Administrator login is not configured on the server.");
+      } else if (result.status === 401) {
+        showError("Invalid administrator credentials.");
+        password.value = "";
+        password.focus();
+      } else if (result.status === 0) {
+        showError("The API is unreachable. Start the server with node server.js.");
+      } else {
+        showError(body.error || "Sign in failed. Try again.");
+      }
+    } catch (_) {
+      showError("Network error. Check the server and try again.");
+    } finally {
+      loading(false);
     }
-
-    if (xhr.status === 0) return showError("Network unavailable. Check your connection.");
-    if (xhr.status === 429) return showError("Too many attempts. Try again in a few minutes.");
-    showError((data && data.error) || "Invalid administrator credentials.");
-    password.value = "";
-    password.focus();
   });
+
+  if (username) username.focus();
+  if (note) {
+    note.setAttribute(
+      "title",
+      "Rate limits apply per address and per username. All attempts are audited."
+    );
+  }
 })();
