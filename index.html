@@ -1,286 +1,320 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>D74 Edits — Free Football Clips, Highlights & Live TV</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050608" />
+  <meta name="color-scheme" content="dark" />
+  <title>D74 Edits — Every football moment. Free. In your feed.</title>
+  <meta name="description" content="Free football clips, match highlights, skills, goals, tactical breakdowns and live TV. No subscription, no watermark, no noise." />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" href="./logo.png" />
+  <link rel="apple-touch-icon" href="./logo.png" />
 
-  <meta name="description" content="D74 Edits is a free home for football clips, status videos, highlights and live TV. Watch, download and explore — no subscription, no watermark.">
-  <meta name="keywords" content="D74 Edits, free football clips, football highlights, live football, free clips, status videos, live TV, football edits">
-  <meta name="robots" content="index, follow">
-  <meta name="theme-color" content="#08090b">
-  <meta name="google-adsense-account" content="ca-pub-3934219046478603">
-  <meta name="google-site-verification" content="hVszZrL_mYRurzmghrVt8wDKlQN4s7WH4nD4CvnJqfI">
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="D74 Edits" />
+  <meta property="og:title" content="D74 Edits — Every football moment. Free." />
+  <meta property="og:description" content="Match highlights, elite skills, goals and tactical breakdowns. No subscription, no watermark, no noise." />
+  <meta property="og:image" content="./logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="D74 Edits — Every football moment. Free." />
+  <meta name="twitter:description" content="Free football clips, highlights, skills, goals and live TV. No subscription, no watermark." />
+  <meta name="twitter:image" content="./logo.png" />
 
-  <meta property="og:site_name" content="D74 Edits">
-  <meta property="og:title" content="D74 Edits — Free Football Clips & Live TV">
-  <meta property="og:description" content="A free home for football clips, highlights, status videos and live TV.">
-  <meta property="og:image" content="logo.png">
-  <meta property="og:type" content="website">
+  <style>
+    html, body { margin: 0; background: #050608; color: #f4f5f6; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <link rel="shortcut icon" type="image/x-icon" href="logo.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="view/color.css">
-  <link rel="stylesheet" href="view/app.css">
-  <link rel="stylesheet" href="view/landing.css">
-
-  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+  <script>document.documentElement.classList.add('js', 'is-loading');</script>
+  <script type="module" src="/src/main.js"></script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "D74 Edits",
+      "description": "Free football clips, highlights, skills, goals and live TV.",
+      "url": "https://d74edits.com/"
+    }
+  </script>
 </head>
 
 <body class="dark">
-  <div class="ambient" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="topbar">
-    <div class="topbar-inner">
-      <a class="brand" href="./" aria-label="D74 Edits home">
-        <span class="brand-mark"><img src="logo.png" alt="" aria-hidden="true"></span>
-        <span class="brand-text">
-          <span class="brand-name">D74 Edits</span>
-          <span class="brand-sub">Football, free</span>
-        </span>
-      </a>
-
-      <nav class="nav-links" aria-label="Main navigation">
-        <a href="explore/" data-nav="explore">Explore</a>
-        <a href="livestreams/" data-nav="livestreams">Live TV</a>
-        <a href="search/" data-nav="search">Search</a>
-        <a href="settings/" data-nav="settings">Settings</a>
-      </nav>
-
-      <div class="topbar-actions">
-        <button class="icon-btn" data-theme-toggle aria-label="Toggle colour theme">
-          <ion-icon name="sunny-outline" data-theme-icon></ion-icon>
-        </button>
-        <a class="btn btn-ghost btn-sm" href="login/" id="loginLink">Log in</a>
-        <button class="icon-btn" id="drawerOpen" aria-label="Open menu" aria-expanded="false">
-          <ion-icon name="menu-outline"></ion-icon>
-        </button>
+  <div class="preloader" id="preloader" role="status" aria-live="polite" aria-label="Loading D74 Edits">
+    <div class="preloader__inner">
+      <div class="preloader__mark">
+        <img src="./logo.png" alt="" aria-hidden="true" />
       </div>
+      <div class="preloader__ball" aria-hidden="true"><span></span></div>
+      <div class="preloader__bar"><span id="preloaderBar"></span></div>
+      <div class="preloader__meta">
+        <span>Kicking off</span>
+        <span id="preloaderPct">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="scene" class="scene scene--3d" aria-hidden="true"></canvas>
+  <div class="fallback-art" aria-hidden="true">
+    <img src="./hero-fallback.svg" alt="" />
+  </div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="./" aria-label="D74 Edits home">
+      <span class="brand__mark"><img src="./logo.png" alt="" aria-hidden="true" /></span>
+      <span class="brand__text">
+        <strong>D74 Edits</strong>
+        <small>Football, free</small>
+      </span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="explore/">Explore</a>
+      <a href="livestreams/">Live TV</a>
+      <a href="search/">Search</a>
+      <a href="settings/">Settings</a>
+    </nav>
+
+    <div class="nav__actions">
+      <div class="mode-toggle" role="group" aria-label="Background mode">
+        <span class="mode-toggle__label">BG</span>
+        <button class="mode-toggle__btn" type="button" data-mode="3d" aria-pressed="false">3D</button>
+        <button class="mode-toggle__btn is-active" type="button" data-mode="2d" aria-pressed="true">2D</button>
+      </div>
+      <a class="btn btn--ghost btn--sm nav__login" href="login/">Log in</a>
+      <a class="btn btn--primary btn--sm nav__cta" href="explore/" data-magnetic>Watch now</a>
+      <button class="nav__toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">
+        <span></span><span></span>
+      </button>
     </div>
   </header>
 
-  <main class="page landing">
-    <div class="container">
-      <section class="hero hero-split hero-screen">
-        <div>
-          <span class="hero-eyebrow" data-reveal>
-            <span class="dot"><ion-icon name="football-outline"></ion-icon></span>
-            Free clips · Live TV · No watermark
-          </span>
-
-          <h1 class="hero-title" data-reveal>
-            Every football moment, <em>free</em> and in your feed.
-          </h1>
-
-          <p class="hero-sub" data-reveal>
-            High-quality clips, the week's biggest highlights and live channels in
-            one place. No subscription, no watermark, no noise.
-          </p>
-
-          <div class="hero-actions" data-reveal>
-            <a class="btn btn-primary btn-lg" href="explore/" data-magnetic>
-              Explore clips
-              <ion-icon name="arrow-forward-outline"></ion-icon>
-            </a>
-            <a class="btn btn-ghost btn-lg" href="livestreams/" data-magnetic>
-              <ion-icon name="tv-outline"></ion-icon>
-              Watch live
-            </a>
-          </div>
-
-          <div class="hero-stats" data-reveal>
-            <div>
-              <div class="stat-value"><span data-count="168">168</span>+</div>
-              <div class="stat-label">Live channels</div>
-            </div>
-            <div>
-              <div class="stat-value"><span data-count="8000">8000</span>+</div>
-              <div class="stat-label">Free clips</div>
-            </div>
-            <div>
-              <div class="stat-value">100%</div>
-              <div class="stat-label">Free forever</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="visual-stage" data-reveal data-tilt>
-          <div class="stage-float top">
-            <span class="badge badge-live">Live</span>
-            SPOTV 1
-          </div>
-
-          <div class="stage-card">
-            <div class="stage-thumb">
-              <img src="logo.png" alt="D74 Edits">
-              <span class="stage-play"><ion-icon name="play"></ion-icon></span>
-            </div>
-            <div class="stage-body">
-              <div class="stage-title">Best goals of the week — free HD clips</div>
-              <div class="stage-meta">
-                <span>D74 Edits</span>
-                <span>1080p · No watermark</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="stage-float bottom">
-            <ion-icon name="arrow-down-circle-outline"></ion-icon>
-            Download ready
-          </div>
-        </div>
-
-        <a class="hero-scroll" href="#features" aria-label="Scroll to features">
-          <span>Scroll</span>
-          <span class="hero-scroll-line"></span>
-        </a>
-      </section>
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <nav class="mobile-menu__links" aria-label="Mobile">
+      <a href="explore/">Explore <span>01</span></a>
+      <a href="livestreams/">Live TV <span>02</span></a>
+      <a href="search/">Search <span>03</span></a>
+      <a href="settings/">Settings <span>04</span></a>
+    </nav>
+    <div class="mobile-menu__footer">
+      <a class="btn btn--primary" href="explore/">Explore clips</a>
+      <a class="btn btn--ghost" href="login/">Log in</a>
     </div>
+  </div>
 
-    <div class="marquee" aria-hidden="true">
-      <span class="marquee-label">Now trending</span>
-      <div class="marquee-track">
-        <span>Premier League</span><span>Champions League</span><span>La Liga</span>
-        <span>Serie A</span><span>Bundesliga</span><span>World Cup</span><span>Highlights</span>
-        <span>Premier League</span><span>Champions League</span><span>La Liga</span>
-        <span>Serie A</span><span>Bundesliga</span><span>World Cup</span><span>Highlights</span>
-      </div>
-    </div>
+  <main id="main">
+    <section class="hero section" id="hero" data-scene="hero">
+      <div class="hero__copy">
+        <p class="eyebrow" data-hero-reveal>
+          <span class="eyebrow__dot"></span>
+          Free clips · Live TV · Zero watermark
+        </p>
 
-    <div class="container">
-      <section class="section" id="features">
-        <div class="section-head" data-reveal>
-          <div>
-            <span class="section-kicker">01 / The platform</span>
-            <h2 class="section-title">Built for the way you watch</h2>
-            <p class="section-desc">Everything you need to catch up on the game — and nothing you don't.</p>
-          </div>
-          <a class="section-link" href="explore/">See it in action <ion-icon name="arrow-forward-outline"></ion-icon></a>
-        </div>
+        <h1 class="hero__title" data-split>
+          <span class="hero__line">Every football moment.</span>
+          <span class="hero__line hero__line--accent">Free. In your feed.</span>
+        </h1>
 
-        <div class="feature-grid">
-          <article class="feature-card" data-reveal>
-            <div class="feature-icon"><ion-icon name="play-circle-outline"></ion-icon></div>
-            <h3>Free clips, instantly</h3>
-            <p>Browse a constantly refreshed feed of football edits, goals and moments. Tap to watch, download when you want — always watermark-free.</p>
-          </article>
+        <p class="hero__sub" data-hero-reveal>
+          Match highlights, elite skills, goals and tactical breakdowns — cut for the replay and ready when you are. No subscription. No watermark. No noise.
+        </p>
 
-          <article class="feature-card" data-reveal data-reveal-delay="80">
-            <div class="feature-icon"><ion-icon name="tv-outline"></ion-icon></div>
-            <h3>Live TV in one place</h3>
-            <p>Over 160 live channels from around the world in a cinema-style player. Switch between matches without leaving the page.</p>
-          </article>
-
-          <article class="feature-card" data-reveal data-reveal-delay="160">
-            <div class="feature-icon"><ion-icon name="shield-checkmark-outline"></ion-icon></div>
-            <h3>Private by design</h3>
-            <p>Your credentials and API keys never touch the browser. Accounts are hashed, sessions are signed, and rate limits keep abuse out.</p>
-          </article>
-        </div>
-
-        <div class="split-strip">
-          <div class="mini-stat" data-reveal>
-            <strong>0</strong>
-            <span>Subscription fees, ever</span>
-          </div>
-          <div class="mini-stat" data-reveal data-reveal-delay="80">
-            <strong>4K</strong>
-            <span>Ready for big screens and small ones</span>
-          </div>
-          <div class="mini-stat" data-reveal data-reveal-delay="160">
-            <strong>24/7</strong>
-            <span>Live channels, every day</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="cta-panel" data-reveal>
-          <div class="cta-copy">
-            <span class="section-kicker">02 / No subscription</span>
-            <h2>The game doesn't wait.</h2>
-            <p>Open the explore feed for fresh clips, or go straight to live TV. Watching needs no account — sign up only when you want downloads and saved clips.</p>
-          </div>
-          <div class="hero-actions">
-            <a class="btn btn-primary btn-lg" href="explore/" data-magnetic>
-              Open the app
-              <ion-icon name="arrow-forward-outline"></ion-icon>
-            </a>
-            <a class="btn btn-ghost btn-lg" href="signup/" data-magnetic>Create a free account</a>
-          </div>
-        </div>
-      </section>
-
-      <footer class="site-footer">
-        <div class="footer-grid">
-          <a class="brand" href="./">
-            <span class="brand-mark"><img src="logo.png" alt="" aria-hidden="true"></span>
-            <span class="brand-text">
-              <span class="brand-name">D74 Edits</span>
-              <span class="brand-sub">Football, free</span>
-            </span>
+        <div class="hero__actions" data-hero-reveal>
+          <a class="btn btn--primary btn--lg" href="explore/" data-magnetic>
+            Explore clips
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </a>
-          <nav class="footer-links" aria-label="Footer">
-            <a href="explore/">Explore</a>
-            <a href="livestreams/">Live TV</a>
-            <a href="search/">Search</a>
-            <a href="settings/">Settings</a>
-            <a href="login/">Log in</a>
-          </nav>
+          <a class="btn btn--ghost btn--lg" href="livestreams/" data-magnetic>
+            <span class="live-dot"></span>
+            Watch live
+          </a>
         </div>
-        <p class="footer-note">© <span data-year>2026</span> D74 Edits. Clips belong to their respective owners.</p>
+
+        <dl class="hero__stats" data-hero-reveal>
+          <div><dt>Live channels</dt><dd><span data-count="168">168</span>+</dd></div>
+          <div><dt>Free clips</dt><dd><span data-count="8000">8,000</span>+</dd></div>
+          <div><dt>Subscription</dt><dd>0</dd></div>
+        </dl>
+      </div>
+
+      <aside class="hero__side" data-hero-reveal aria-label="Live channel preview">
+        <div class="live-card">
+          <div class="live-card__top">
+            <span class="live-badge"><span></span> Live</span>
+            <span class="live-card__meta">1080p · D74</span>
+          </div>
+          <strong>SPOTV 1</strong>
+          <div class="live-card__wave" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <p>168 channels. One feed.</p>
+        </div>
+        <p class="hero__hint">Move your cursor. The ball follows.</p>
+      </aside>
+
+      <a class="hero__scroll" href="#kickoff" aria-label="Scroll to kick-off">
+        <span>Scroll to kick off</span>
+        <span class="hero__scroll-line"></span>
+      </a>
+    </section>
+
+    <section class="kickoff section" id="kickoff" data-scene="kickoff">
+      <div class="kickoff__ghost" aria-hidden="true">KICK OFF</div>
+      <div class="section-copy section-copy--center">
+        <p class="kicker" data-reveal>01 / Kick-off</p>
+        <h2 data-split>The lights are on. The pitch is yours.</h2>
+        <p data-reveal>From the tunnel to the top corner. Scroll to take the shot.</p>
+        <span class="scroll-cue" data-reveal>Keep scrolling</span>
+      </div>
+    </section>
+
+    <section class="pitch section" id="pitch" data-scene="pitch">
+      <div class="section-copy">
+        <p class="kicker" data-reveal>02 / The pitch</p>
+        <h2 data-split>Every angle. Every goal. Every touch.</h2>
+        <p data-reveal>Highlights cut for the replay. Skills slowed to a crawl. Tactics broken down frame by frame. This is football the way you actually watch it.</p>
+        <ul class="tag-row" data-reveal>
+          <li>Goals</li>
+          <li>Skills</li>
+          <li>Tactics</li>
+          <li>Fan edits</li>
+        </ul>
+      </div>
+
+      <aside class="scoreboard" data-reveal aria-label="Live match scoreboard">
+        <div class="scoreboard__top">
+          <span class="live-badge"><span></span> Live</span>
+          <span class="scoreboard__minute">90'</span>
+        </div>
+        <div class="scoreboard__teams">
+          <span>D74</span>
+          <strong>3<span>:</span>2</strong>
+          <span>FANS</span>
+        </div>
+        <div class="scoreboard__bar"><span></span></div>
+        <p>Second half · Stoppage time</p>
+      </aside>
+    </section>
+
+    <section class="showcase section" id="showcase" data-scene="showcase">
+      <div class="section-head">
+        <div>
+          <p class="kicker" data-reveal>03 / The feed</p>
+          <h2 data-split>Pick your replay.</h2>
+          <p data-reveal>Fresh clips, hand-picked. Tap a card to watch. Swipe on mobile.</p>
+        </div>
+        <p class="gallery-hint" data-reveal>Scroll to rotate · Tap to watch</p>
+      </div>
+
+      <div class="gallery" id="gallery">
+        <div class="gallery__track" id="galleryTrack"></div>
+      </div>
+      <noscript>
+        <p class="noscript-note">Enable JavaScript to browse the interactive video feed, or open the <a href="explore/">full Explore page</a>.</p>
+      </noscript>
+    </section>
+
+    <section class="stats section" id="stats" data-scene="stats">
+      <div class="section-copy">
+        <p class="kicker" data-reveal>04 / By the numbers</p>
+        <h2 data-split>Built for the 90th minute.</h2>
+        <p data-reveal>A feed that keeps up with the group chat. New drops, live channels and the moments everyone is talking about.</p>
+      </div>
+
+      <div class="stats__grid">
+        <article class="stat" data-reveal>
+          <span class="stat__value"><span data-count="8000">8,000</span>+</span>
+          <span class="stat__label">Clips in the feed</span>
+          <p>Highlights, skills, goals and fan edits.</p>
+        </article>
+        <article class="stat" data-reveal>
+          <span class="stat__value"><span data-count="168">168</span>+</span>
+          <span class="stat__label">Live channels</span>
+          <p>Football from around the world, in one place.</p>
+        </article>
+        <article class="stat" data-reveal>
+          <span class="stat__value"><span data-count="24">24</span>/7</span>
+          <span class="stat__label">Always on</span>
+          <p>The feed does not stop for full-time.</p>
+        </article>
+        <article class="stat" data-reveal>
+          <span class="stat__value">0</span>
+          <span class="stat__label">Watermarks</span>
+          <p>Clean clips. Your screen, your rules.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="final section" id="final" data-scene="final">
+      <div class="final__content">
+        <p class="kicker" data-reveal>05 / Your move</p>
+        <h2 data-split>
+          <span class="final__line">The game doesn’t wait.</span>
+          <span class="final__line final__line--accent">Neither should you.</span>
+        </h2>
+        <p data-reveal>Open the feed. Find the clip. Send it to the group chat. Watching needs no account — sign up only when you want downloads and saved clips.</p>
+        <div class="final__actions" data-reveal>
+          <a class="btn btn--primary btn--lg" href="explore/" data-magnetic>
+            Explore clips
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </a>
+          <a class="btn btn--ghost btn--lg" href="signup/" data-magnetic>Create a free account</a>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <div class="footer__brand">
+          <a class="brand" href="./" aria-label="D74 Edits home">
+            <span class="brand__mark"><img src="./logo.png" alt="" aria-hidden="true" /></span>
+            <span class="brand__text"><strong>D74 Edits</strong><small>Football, free</small></span>
+          </a>
+          <p>Clips belong to their respective owners. Built for the love of the game.</p>
+        </div>
+        <nav class="footer__links" aria-label="Footer">
+          <a href="explore/">Explore</a>
+          <a href="livestreams/">Live TV</a>
+          <a href="search/">Search</a>
+          <a href="login/">Log in</a>
+        </nav>
+        <p class="footer__note">© <span id="year">2026</span> D74 Edits. All rights reserved.</p>
       </footer>
-    </div>
+    </section>
   </main>
 
-  <aside class="drawer" id="drawer" aria-label="Menu">
-    <div class="drawer-head">
-      <span class="drawer-brand">
-        <span class="brand-mark"><img src="logo.png" alt="" aria-hidden="true"></span>
-        <span class="brand-text">
-          <span class="brand-name">D74 Edits</span>
-          <span class="brand-sub">Football, free</span>
-        </span>
-      </span>
-      <button class="icon-btn" id="drawerClose" aria-label="Close menu">
-        <ion-icon name="close-outline"></ion-icon>
+  <dialog class="video-modal" id="videoModal" aria-labelledby="videoModalTitle">
+    <div class="video-modal__panel">
+      <button class="video-modal__close" id="videoModalClose" type="button" aria-label="Close video">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
       </button>
+      <div class="video-modal__stage">
+        <video id="videoModalPlayer" controls playsinline preload="metadata"></video>
+      </div>
+      <div class="video-modal__meta">
+        <p class="kicker" id="videoModalKicker">D74 clip</p>
+        <h2 id="videoModalTitle">Clip</h2>
+        <p id="videoModalDescription"></p>
+        <a class="btn btn--ghost" href="explore/">Browse all clips</a>
+      </div>
     </div>
-    <div class="drawer-links">
-      <a class="drawer-link" href="explore/" data-nav="explore">
-        <ion-icon name="compass-outline"></ion-icon>
-        <span>Explore<small class="sub">Fresh clips & highlights</small></span>
-      </a>
-      <a class="drawer-link" href="livestreams/" data-nav="livestreams">
-        <ion-icon name="tv-outline"></ion-icon>
-        <span>Live TV<small class="sub">168 channels, 24/7</small></span>
-      </a>
-      <a class="drawer-link" href="search/" data-nav="search">
-        <ion-icon name="search-outline"></ion-icon>
-        <span>Search<small class="sub">Find any clip fast</small></span>
-      </a>
-      <a class="drawer-link" href="settings/" data-nav="settings">
-        <ion-icon name="settings-outline"></ion-icon>
-        <span>Settings<small class="sub">Theme & account</small></span>
-      </a>
-      <a class="drawer-link" href="login/" data-nav="login">
-        <ion-icon name="person-outline"></ion-icon>
-        <span>Log in<small class="sub">Free account</small></span>
-      </a>
-    </div>
-    <div class="drawer-foot">
-      <p>Free football clips and live TV. Built to be fast, responsive and private.</p>
-    </div>
-  </aside>
-  <div class="scrim" id="scrim"></div>
+  </dialog>
 
-  <script defer src="view/motion.js"></script>
-  <script defer src="view/ui.js"></script>
+  <div class="cursor" aria-hidden="true">
+    <span class="cursor__ring"></span>
+    <span class="cursor__dot"></span>
+  </div>
+
+  <noscript>
+    <style>
+      .preloader { display: none !important; }
+      html.is-loading { overflow: auto !important; }
+      .scene { display: none !important; }
+      .fallback-art { opacity: 1 !important; }
+    </style>
+  </noscript>
 </body>
-
 </html>

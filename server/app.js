@@ -325,6 +325,48 @@ function createApp() {
     res.status(404).json({ error: "Unknown API endpoint.", code: "not_found" })
   );
 
+  // Production landing build. When `npm run build` has produced `dist/`,
+  // serve it first so the Vite bundle and hashed assets are used. The
+  // existing public pages fall through to the root static server.
+  const distDir = path.join(config.root, "dist");
+  const serveBuiltLanding = (req, res, next) => {
+    if (!["GET", "HEAD"].includes(req.method)) return next();
+    if (!fs.existsSync(distDir)) return next();
+
+    const requestPath = req.path || "/";
+    const target = safeJoin(distDir, requestPath);
+    if (!target) return next();
+
+    let stat = null;
+    try {
+      stat = fs.statSync(target);
+    } catch (_) {
+      if (!path.extname(target)) {
+        const indexFile = path.join(target, "index.html");
+        if (fs.existsSync(indexFile) && fs.statSync(indexFile).isFile()) {
+          return sendFile(req, res, indexFile);
+        }
+      }
+      return next();
+    }
+
+    if (stat.isDirectory()) {
+      if (!requestPath.endsWith("/")) {
+        const [pathname, query] = req.originalUrl.split("?");
+        return res.redirect(308, pathname + "/" + (query ? "?" + query : ""));
+      }
+      const indexFile = path.join(target, "index.html");
+      if (fs.existsSync(indexFile) && fs.statSync(indexFile).isFile()) {
+        return sendFile(req, res, indexFile);
+      }
+      return next();
+    }
+
+    if (stat.isFile()) return sendFile(req, res, target);
+    return next();
+  };
+
+  app.use(serveBuiltLanding);
   app.use(serveStatic);
 
   app.use((req, res) => {

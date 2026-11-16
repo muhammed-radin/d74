@@ -7,7 +7,8 @@ Free football clips, highlights and 168 live TV channels — rebuilt as a fast, 
 ## Highlights
 
 - **Broadcast-inspired design** — near-black canvas, sharp borders, one lime accent, editorial typography and restrained motion. The D74 logo appears in every navigation bar.
-- **Screen-fit hero + motion** — the landing hero uses `svh`/`lvh`/`vh` so it fills exactly one screen. anime.js drives the headline reveal, counters, scroll reveals, pointer tilt and magnetic buttons, with reduced-motion and no-CDN fallbacks.
+- **Scroll-driven 3D landing** — a persistent Three.js scene with a procedural PBR football, floodlight tunnel, shader-rippled goal net, instanced particles/confetti, bloom and a damped camera path. All copy, gallery cards and the video modal stay in real DOM.
+- **Screen-fit hero + motion** — the landing hero uses `svh`/`lvh`/`vh` so it fills exactly one screen. GSAP + ScrollTrigger + Lenis drive the headline reveal, counters, scroll reveals and magnetic buttons, with reduced-motion and no-WebGL fallbacks.
 - **Responsive everywhere** — public pages and the admin all work from 360 px phones to wide desktops.
 - **No secrets in the browser** — restdb, RapidAPI, JW Player and admin credentials live in `.env` and are only read by the Node process.
 - **Secure administrator sessions** — server-side sessions in an `httpOnly`, `SameSite=Strict` cookie; CSRF tokens; idle and absolute expiry; device binding; session-id regeneration; revoke-one and revoke-all; full audit trail.
@@ -36,24 +37,99 @@ cp .env.example .env
 # 3. Add the live channel data (gitignored — it contains DRM keys)
 #    server/data/channels.json
 
-# 4. Run
-npm start
-# or: node server.js
+# 4. Landing page dev server (Vite, hot reload)
+npm run dev
+# open http://localhost:5173
+
+# 5. API / full site server (Express, auto-restart)
+npm run dev:api
+# open http://localhost:3005
 ```
 
-Open <http://localhost:3005>. The admin control room is at <http://localhost:3005/Admin/>.
-
-For development with automatic restarts:
+Production build and serve:
 
 ```bash
-npm run dev
+npm run build   # writes dist/
+npm start       # Express serves dist/ first, then the legacy pages
 ```
+
+The admin control room is at <http://localhost:3005/Admin/>.
 
 Verify every JavaScript and CSS file without starting anything:
 
 ```bash
 npm run check
 ```
+
+## 3D landing experience
+
+The landing page is a Vite + vanilla JavaScript app with a persistent Three.js scene behind semantic HTML. The scene uses a baked PMREM environment for ball/goal reflections, a procedural PBR football with seam bump and contact shadow, a sagging shader net, instanced crowd and LED boards, volumetric floodlights, dust/confetti/fireworks and a damped camera path with a goal-side impact shake.
+
+```text
+index.html                  landing markup, SEO and accessible content
+src/config/site.js          copy, nav, video cards, quality tiers
+src/main.js                 boot sequence and feature wiring
+src/scene/                  renderer, ball, pitch, stadium, particles, post FX
+src/shaders/                glow, floodlight, net and post-processing shaders
+src/sections/               preloader, scroll, text, gallery, modal, cursor
+src/styles/main.css         landing design system and responsive rules
+```
+
+### Replace the copy and videos
+
+- **Copy:** edit `src/config/site.js` (`hero`, `kickoff`, `pitch`, `showcase`, `stats`, `final`, `footer`).
+- **Video cards:** edit `site.videos`. Each item needs `title`, `category`, `meta`, `description`, `poster`, `sources` and `accent`. The sample clips are free-licensed Mixkit stock footage; swap in your own MP4/WebM sources.
+- **Navigation:** edit `site.nav`. The footer links are in `site.footer.links`.
+- **Brand colours:** edit the tokens at the top of `src/styles/main.css` (`--accent`, `--accent-2`, `--accent-3`, `--bg`).
+
+### Replace the procedural 3D assets
+
+- **2D / 3D switch:** the navbar has a `BG 3D / 2D` control. 2D is always the initial background and is a plain, static dark background with no 2D animation or effects. 3D lazy-loads the Three.js scene only when selected for the current visit; reloading returns to 2D.
+- **Football texture:** `src/scene/textures.js` → `createBallTextures()`. It builds a real spherical truncated-icosahedron panel layout and returns colour, normal and roughness maps. Replace it with your own texture set if you have one.
+- **Pitch texture:** `createPitchTexture()` in the same file. Swap it for a photographed turf map or your own line-marking texture.
+- **Ball material:** `src/scene/Ball.js` → `MeshPhysicalMaterial`. Add normal/roughness maps there.
+- **Net:** `src/shaders/net.js` is a vertex-rippled grid shader. The shot progress and hit point are driven from `src/scene/Experience.js`.
+- **Particles/confetti/fireworks:** `src/scene/Dust.js`, `Confetti.js`, `Fireworks.js`. Counts come from `site.quality`.
+
+### Tweak the scroll timeline
+
+`src/scene/Experience.js` owns the camera and ball timeline.
+
+- `cameraCurve` — Catmull-Rom camera path. Each point is a scroll section (hero → tunnel → pitch → feed → stats → final).
+- `lookCurve` — matching look-at targets.
+- `Ball.update()` — ball position by scroll progress. The key ranges are: hero `0–0.12`, tunnel `0.12–0.28`, approach `0.28–0.36`, shot `0.36–0.50`, net reaction `0.50–0.62`, hidden `0.62–0.84`, final rise `0.84–1.0`.
+- `Pitch.update()` — net ripple window (`0.46–0.56`).
+- `Confetti` / `Fireworks` activate at `0.86` / `0.875`.
+
+Scroll progress is normalised from the whole document by `src/sections/scroll.js`. To change section timing, move the corresponding curve points or remap `p` inside `Experience.update()`.
+
+### Performance and accessibility
+
+- Quality tiers live in `site.quality` (`low`, `medium`, `high`). `src/utils/quality.js` picks an initial tier from pointer type, viewport, CPU cores, memory and network. `QualityManager` steps down automatically if measured FPS stays below 45.
+- Pixel ratio is capped at the tier value (`1.25` low, `1.5` medium, `2` high) and at `1.5` on mobile.
+- Mobile bloom is capped at `0.28` strength with a higher threshold; low-tier mobile disables post-processing entirely.
+- Post-processing, shadows, particle density and confetti are tier-controlled.
+- `prefers-reduced-motion` skips Lenis, skips the WebGL scene and shows the static SVG fallback with all content intact.
+- No WebGL (or a scene boot failure) shows `public/hero-fallback.svg`; the HTML content is never hidden behind the canvas. The default 2D mode remains plain dark and works without WebGL.
+- Gallery cards are real DOM buttons for SEO, keyboard access and screen readers; the 3D depth/tilt is CSS 3D. The video modal is a native `<dialog>`.
+- The landing CSS is inlined into the document head by a small Vite plugin, so there is no unstyled first paint and no extra render-blocking CSS request.
+- The preloader waits for `window.load` and fonts with a 2.6s cap, then reveals the hero copy. The WebGL chunk is dynamically imported after the first paint.
+
+### Deploy
+
+- **Express:** `npm run build && npm start`. `server/app.js` serves `dist/` first and falls back to the existing public pages.
+- **Static host:** `npm run build`, then upload `dist/`. Set `base` in `vite.config.mjs` if the site is hosted under a sub-path.
+- **CDN/cache:** hashed assets are in `dist/assets/`; HTML is sent with `no-cache`. The remote sample videos and Google Fonts are external; self-host them if you need a fully offline build.
+
+### Optional upgrades
+
+- Stadium ambience and UI sounds via Web Audio (mute by default).
+- A goal-celebration easter egg: confetti + net ripple + camera shake triggered by the final CTA.
+- WebGPU renderer (`three/webgpu`) with a WebGL fallback.
+- Draco-compressed geometry and KTX2 textures for heavier hero assets.
+- HDR environment maps for more realistic ball reflections.
+- Per-card video textures in the Three.js scene (keep the DOM gallery as the accessible layer).
+- A/B test the hero headline and CTA from `site.js` with your analytics tool.
 
 ### Database collections
 
@@ -232,8 +308,11 @@ Earlier versions of this project committed real credentials to git. Deleting the
 ├── .env.example              # environment template
 ├── scripts/check.js          # syntax + CSS health check
 ├── server/data/              # channels.json (gitignored), sync state
-├── view/                     # shared design system (app.css, color.css, ui.js, d74.js, motion.js)
-├── index.html                # landing page
+├── src/                      # Vite 3D landing app (scene, sections, shaders, styles)
+├── public/                   # static landing assets and fallback artwork
+├── dist/                     # `npm run build` output, served by Express
+├── view/                     # shared design system for the legacy public pages
+├── index.html                # Vite landing page
 ├── explore/                  # clip feed + matches + channels
 ├── search/                   # search page
 ├── livestreams/              # live TV browser
@@ -248,9 +327,9 @@ Earlier versions of this project committed real credentials to git. Deleting the
 
 ## Motion
 
-The landing page loads anime.js from jsDelivr (`cdn.jsdelivr.net`, already allowed by the CSP). If the script is blocked, or the visitor has `prefers-reduced-motion` enabled, `view/motion.js` exits and the CSS/IntersectionObserver fallback in `view/ui.js` handles reveals, counters and tilt. To self-host, save `anime.min.js` into `view/` and point the script tag at it.
+The landing page uses GSAP + ScrollTrigger and Lenis for damped scrolling, with a single Three.js scene behind the HTML. Text reveals, counters, gallery rotation and the modal are real DOM interactions. The WebGL scene is dynamically imported and starts after the preloader; if it fails or WebGL is unavailable, the static SVG fallback and all copy remain.
 
-The admin deliberately ignores `view/ui.js` and `view/motion.js`, and `Admin/admin.css` forces `animation: none` and `transition: none` on every element.
+The legacy public pages still use `view/ui.js` and `view/motion.js` (anime.js). The admin deliberately ignores both, and `Admin/admin.css` forces `animation: none` and `transition: none` on every element.
 
 ## Credits
 
