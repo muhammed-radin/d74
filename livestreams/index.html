@@ -14,6 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="../view/app.css">
   <link rel="stylesheet" href="style.stream.css">
+  <link rel="stylesheet" href="../view/ads.css">
 
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
@@ -64,6 +65,8 @@
         </p>
       </section>
 
+      <div class="ad-slot ad-slot--wide" data-ad-placement="live"></div>
+
       <div class="live-layout">
         <section class="live-main" aria-label="Channel player">
           <div class="player-shell">
@@ -81,7 +84,7 @@
           </div>
         </section>
 
-        <aside class="panel live-side" aria-label="Channel list">
+        <aside class="panel live-side has-ad" aria-label="Channel list">
           <div class="panel-head">
             <div>
               <h2 class="panel-title">Channels</h2>
@@ -103,6 +106,8 @@
             <div class="skeleton" aria-hidden="true" style="height:44px"></div>
             <div class="skeleton" aria-hidden="true" style="height:44px"></div>
           </div>
+
+          <div class="ad-slot ad-slot--side" data-ad-placement="live-side"></div>
         </aside>
       </div>
     </div>
@@ -175,6 +180,7 @@
   <script src="../view/d74.js"></script>
   <script src="../view/app.js"></script>
   <script src="../view/ui.js"></script>
+  <script src="../view/ads.js"></script>
   <script src="stream.js"></script>
 </body>
 

@@ -142,3 +142,11 @@
 - added per-address login throttling, audit trail, active-session management and cache controls
 - kept `pw` and `url` out of public video responses and exposed only a computed `downloadable` flag
 - added `npm run check`, a full README rewrite and an updated `.env.example`
+
+### 10 ( AdSense ad cards )
+- added designed, responsive ad cards to Explore and Live TV with `view/ads.js` and `view/ads.css`
+- real AdSense `<ins>` units are used when `ADSENSE_CLIENT` and slot ids are configured
+- missing configuration and local previews fall back to D74 house-ad cards; blocked scripts keep the reserved card height instead of breaking the layout
+- added validated `ADSENSE_*` settings, exposed only through `GET /api/config`
+- extended the CSP for AdSense scripts, ad frames and quality-check domains while keeping JW Player working
+- reserved card heights and a shortened live channel rail prevent layout shift on every breakpoint

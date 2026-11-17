@@ -1,0 +1,414 @@
+/* ------------------------------------------------------------------
+   D74 Edits — shared ad cards
+   Designed placements for Explore and Live TV. The card reserves its
+   space up front, so an ad loading (or not loading) never shifts the
+   page. Everything follows the near-black / acid-lime design system.
+------------------------------------------------------------------ */
+
+.ad-slot {
+  position: relative;
+  margin-top: 44px;
+}
+
+.ad-slot--side {
+  margin-top: 16px;
+}
+
+.ad-slot + .section {
+  margin-top: 52px;
+}
+
+.ad-slot + .live-layout {
+  margin-top: 26px;
+}
+
+/* Keep the Live TV sidebar usable when it also carries an ad card. */
+@media (min-width: 880px) {
+  .live-side.has-ad .channel-list {
+    max-height: clamp(180px, calc(100vh - 590px), 520px);
+  }
+}
+
+/* ------------------------------- card ------------------------------ */
+
+.ad-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(130% 150% at 100% 0%, rgba(215, 255, 63, 0.06), transparent 56%),
+    linear-gradient(180deg, var(--surface), var(--bg-2));
+  box-shadow: 0 20px 44px -34px rgba(0, 0, 0, 0.92);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ad-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 96px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.ad-card::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  bottom: 42px;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid rgba(215, 255, 63, 0.45);
+  border-bottom: 1px solid rgba(215, 255, 63, 0.45);
+  pointer-events: none;
+}
+
+.ad-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 26px 54px -34px rgba(0, 0, 0, 0.96);
+}
+
+.ad-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.ad-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ad-card__tag i {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(215, 255, 63, 0.12);
+}
+
+.ad-card__meta {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(139, 147, 157, 0.75);
+  white-space: nowrap;
+}
+
+.ad-card__body {
+  padding: clamp(12px, 1.7vw, 18px);
+}
+
+.ad-card--wide .ad-card__body {
+  padding: 18px clamp(16px, 2.6vw, 26px);
+}
+
+.ad-card__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(139, 147, 157, 0.68);
+}
+
+.ad-card__foot-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.ad-card__foot-note {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ----------------------------- ad unit ----------------------------- */
+
+.ad-card__unit {
+  position: relative;
+  min-height: 116px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.022) 0,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 11px
+    ),
+    var(--surface-solid);
+}
+
+.ad-card__unit .adsbygoogle {
+  position: relative;
+  z-index: 1;
+  min-height: inherit;
+}
+
+.ad-card__placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(139, 147, 157, 0.45);
+}
+
+.ad-card--inline .ad-card__unit {
+  min-height: 104px;
+}
+
+.ad-card--side .ad-card__body {
+  padding: 14px;
+}
+
+.ad-card--side .ad-card__unit {
+  min-height: 250px;
+}
+
+/* ---------------------------- house ad ----------------------------- */
+
+.ad-house {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 30px;
+  min-height: 116px;
+  padding: clamp(16px, 2.2vw, 24px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(120% 140% at 0% 100%, rgba(215, 255, 63, 0.1), transparent 52%),
+    var(--surface-solid);
+}
+
+.ad-house::before {
+  content: "";
+  position: absolute;
+  right: -54px;
+  top: -74px;
+  width: 210px;
+  height: 210px;
+  border: 1px solid rgba(215, 255, 63, 0.16);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ad-house::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  top: 26px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 5px rgba(215, 255, 63, 0.08);
+  pointer-events: none;
+}
+
+.ad-house__stamp {
+  position: absolute;
+  right: 16px;
+  bottom: -18px;
+  z-index: 0;
+  font-family: "Sora", "Inter", sans-serif;
+  font-size: clamp(3.4rem, 8vw, 5.6rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.07em;
+  color: rgba(255, 255, 255, 0.035);
+  pointer-events: none;
+  user-select: none;
+}
+
+.ad-house__copy {
+  position: relative;
+  z-index: 1;
+  max-width: 64ch;
+}
+
+.ad-house__kicker {
+  display: block;
+  margin-bottom: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ad-house__title {
+  font-size: clamp(1.12rem, 2.1vw, 1.5rem);
+  letter-spacing: -0.03em;
+}
+
+.ad-house__text {
+  margin-top: 7px;
+  max-width: 54ch;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.ad-house__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.ad-house__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--glow);
+}
+
+.ad-house__arrow {
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: transform 0.25s ease;
+}
+
+.ad-house__cta:hover .ad-house__arrow {
+  transform: translateX(3px);
+}
+
+/* Vertical card for the Live TV channel rail. */
+.ad-house--side {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-height: 250px;
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(215, 255, 63, 0.15), transparent 56%),
+    linear-gradient(175deg, var(--surface), var(--surface-solid));
+}
+
+.ad-house--side .ad-house__title {
+  font-size: clamp(1.2rem, 2.4vw, 1.42rem);
+}
+
+.ad-house--side .ad-house__text {
+  max-width: 30ch;
+}
+
+.ad-house--side .ad-house__stamp {
+  right: -4px;
+  bottom: -12px;
+  font-size: clamp(4.2rem, 11vw, 5.4rem);
+}
+
+/* --------------------------- responsive ---------------------------- */
+
+@media (max-width: 719px) {
+  .ad-slot {
+    margin-top: 34px;
+  }
+
+  .ad-slot--side {
+    margin-top: 14px;
+  }
+
+  .ad-slot + .section {
+    margin-top: 42px;
+  }
+
+  .ad-card__top {
+    padding: 10px 13px;
+  }
+
+  .ad-card__body,
+  .ad-card--wide .ad-card__body {
+    padding: 12px;
+  }
+
+  .ad-card--side .ad-card__body {
+    padding: 13px;
+  }
+
+  .ad-card__foot {
+    padding: 9px 13px 11px;
+  }
+
+  .ad-card__foot-note {
+    display: none;
+  }
+
+  .ad-card__unit {
+    min-height: 100px;
+  }
+
+  .ad-card--side .ad-card__unit {
+    min-height: 220px;
+  }
+
+  .ad-house {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 150px;
+    padding: 16px;
+  }
+
+  .ad-house--side {
+    min-height: 220px;
+  }
+
+  .ad-house__stamp {
+    font-size: 4.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-card,
+  .ad-card *,
+  .ad-house__cta,
+  .ad-house__arrow {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .ad-house__cta:hover {
+    transform: none;
+  }
+}

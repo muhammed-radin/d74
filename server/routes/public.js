@@ -77,11 +77,17 @@ router.get("/config", (req, res) => {
     jwplayerKey: process.env.JWPLAYER_KEY || "",
     youtubeChannel: "https://youtube.com/@d74edits67",
     theme: "dark",
+    adsense: {
+      enabled: config.adsense.enabled && Boolean(config.adsense.client),
+      client: config.adsense.client,
+      slots: config.adsense.slots,
+    },
     features: {
       redis: cache.connected,
       youtubeSync: config.youtube.syncEnabled,
       youtubeChannels: config.youtube.channels.length,
       analytics: true,
+      ads: config.adsense.enabled && Boolean(config.adsense.client),
     },
   });
 });

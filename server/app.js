@@ -71,6 +71,17 @@ function contentSecurityPolicy() {
     "https://ssl.p.jwpcdn.com",
     "https://*.jwpcdn.com",
     "https://*.jwplayer.com",
+    // AdSense loader and the ad-serving scripts it pulls in.
+    "https://pagead2.googlesyndication.com",
+    "https://*.googlesyndication.com",
+    "https://*.doubleclick.net",
+    "https://*.googleadservices.com",
+    "https://*.adtrafficquality.google",
+    "https://adservice.google.com",
+    "https://www.googletagservices.com",
+    "https://www.google.com",
+    "https://*.google.com",
+    "https://fundingchoicesmessages.google.com",
   ];
   // JW Player still requests its loader over plain HTTP on some hosts.
   // Allow that only outside production; production stays HTTPS-only.
@@ -99,6 +110,12 @@ function contentSecurityPolicy() {
     "https://cdn.jwplayer.com",
     "https://ssl.p.jwpcdn.com",
     "https://*.jwplayer.com",
+    // Ad iframes (AdSense, Google Ads, funding choices, quality checks).
+    "https://*.googlesyndication.com",
+    "https://*.doubleclick.net",
+    "https://*.googleadservices.com",
+    "https://*.adtrafficquality.google",
+    "https://*.google.com",
   ];
   if (!config.isProd) frameSrc.push("http://ssl.p.jwpcdn.com");
 

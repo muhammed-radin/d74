@@ -128,6 +128,7 @@ See [`.env.example`](.env.example) for the complete, commented list. The most im
 | `RAPIDAPI_KEY` | RapidAPI key for YouTube and football. |
 | `YOUTUBE_CHANNEL_ID` / `YOUTUBE_CHANNEL_IDS` | One or more channels for the feed and cron sync. |
 | `JWPLAYER_KEY` | JW Player licence key used by the live player. |
+| `ADSENSE_CLIENT` / `ADSENSE_SLOT_*` | AdSense publisher id and placement slot ids. Leave blank to show D74 house ads. |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Administrator login. Prefer `ADMIN_PASSWORD_HASH` in production. |
 | `ADMIN_SESSION_HOURS` / `ADMIN_SESSION_IDLE_MINUTES` | Absolute and idle session lifetimes. |
 | `REDIS_URL` | Enables Redis for cache and sessions. |
@@ -145,6 +146,31 @@ Generate an admin password hash:
 node -e "const a=require('./server/auth');const h=a.hashPassword(process.argv[1]);console.log('scrypt$'+h.salt+'$'+h.hash)" 'your-password'
 ```
 
+## Advertising
+
+Explore and Live TV host designed ad cards from `view/ads.js` and `view/ads.css`. Each card reserves its height up front and follows the near-black/acid-lime design system.
+
+Configure real AdSense units in `.env`:
+
+```ini
+ADSENSE_CLIENT=ca-pub-0000000000000000
+ADSENSE_SLOT_EXPLORE=0000000000
+ADSENSE_SLOT_EXPLORE_INLINE=0000000000
+ADSENSE_SLOT_LIVE=0000000000
+ADSENSE_SLOT_LIVE_SIDE=0000000000
+```
+
+| Page | Placement | Environment variable |
+| --- | --- | --- |
+| Explore | Leaderboard below the hero | `ADSENSE_SLOT_EXPLORE` |
+| Explore | Inline card below the clip grid | `ADSENSE_SLOT_EXPLORE_INLINE` |
+| Live TV | Leaderboard below the hero | `ADSENSE_SLOT_LIVE` |
+| Live TV | Rectangle in the channel rail | `ADSENSE_SLOT_LIVE_SIDE` |
+
+The server validates the `ca-pub-…` publisher id and numeric slot ids; only those values reach the browser through `GET /api/config`. If the client or a slot is missing, the card renders a tasteful D74 house ad, so there is never an empty or broken placement. Local previews without the Node API use the same fallback. If a configured ad is blocked, the card keeps its reserved height and shows a neutral placeholder instead of collapsing the layout. Set `ADSENSE_ENABLED=false` to force house ads everywhere.
+
+AdSense domains are allow-listed in the CSP for scripts, frames and images. `'unsafe-eval'` remains enabled for JW Player.
+
 ## API surface
 
 All endpoints are served by the Express app.
@@ -152,7 +178,7 @@ All endpoints are served by the Express app.
 | Endpoint | Description |
 | --- | --- |
 | `GET /api/health` | Health check. |
-| `GET /api/config` | Public site config (includes the JW Player key used by the player iframe). |
+| `GET /api/config` | Public site config (JW Player key and validated AdSense ids). |
 | `GET /api/channels` | Channel `{ id, name }` list. |
 | `GET /api/channels/:id` | One channel's stream details + DRM keys. |
 | `POST /api/auth/signup` | Create an account (scrypt hash). |

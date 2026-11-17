@@ -31,6 +31,19 @@ function csv(value) {
     .filter(Boolean);
 }
 
+/* AdSense identifiers are public, but they still have a fixed shape.
+   Reject anything else so a typo cannot leak a malformed value into
+   the page or the Content-Security-Policy. */
+function adsenseClient(value) {
+  const id = String(value || "").trim();
+  return /^ca-pub-\d{10,20}$/.test(id) ? id : "";
+}
+
+function adsenseSlot(value) {
+  const id = String(value || "").trim();
+  return /^\d{5,20}$/.test(id) ? id : "";
+}
+
 const NODE_ENV = env.NODE_ENV || "development";
 const IS_PROD = NODE_ENV === "production";
 const IS_TEST = NODE_ENV === "test";
@@ -171,6 +184,19 @@ const config = {
     passwordHash: adminPasswordHash,
     maxLoginAttempts: Math.max(3, num(env.ADMIN_MAX_LOGIN_ATTEMPTS, 5)),
     windowMinutes: Math.max(1, num(env.ADMIN_LOGIN_WINDOW_MINUTES, 15)),
+  },
+
+  /* AdSense IDs are public by design. Only a valid publisher id and
+     numeric slot ids ever reach the browser. */
+  adsense: {
+    enabled: bool(env.ADSENSE_ENABLED, true),
+    client: adsenseClient(env.ADSENSE_CLIENT),
+    slots: {
+      explore: adsenseSlot(env.ADSENSE_SLOT_EXPLORE),
+      exploreInline: adsenseSlot(env.ADSENSE_SLOT_EXPLORE_INLINE),
+      live: adsenseSlot(env.ADSENSE_SLOT_LIVE),
+      liveSide: adsenseSlot(env.ADSENSE_SLOT_LIVE_SIDE),
+    },
   },
 
   redis: {
