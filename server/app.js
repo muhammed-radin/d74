@@ -216,12 +216,13 @@ function serveStatic(req, res, next) {
 function sendFile(req, res, file) {
   const ext = path.extname(file).toLowerCase();
   const isHtml = ext === ".html";
+  const isJavaScript = ext === ".js";
   const type = MIME_TYPES[ext] || "application/octet-stream";
   res.setHeader("Content-Type", type);
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader(
     "Cache-Control",
-    isHtml ? "no-cache" : "public, max-age=3600, stale-while-revalidate=86400"
+    isHtml || isJavaScript ? "no-cache" : "public, max-age=3600, stale-while-revalidate=86400"
   );
   if (ext === ".webmanifest" || ext === ".xml") {
     res.setHeader("Cache-Control", "public, max-age=300");
