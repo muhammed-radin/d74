@@ -121,6 +121,9 @@ if (require.main === module) {
     logger.error("Failed to start", { error });
     process.exit(1);
   });
+  console.log("D74 Edits is starting up…");
+} else {
+  console.warn("server.js is being imported as a module; start() must be called manually");
 }
 
 module.exports = { start, shutdown };
