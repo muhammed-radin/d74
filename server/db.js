@@ -132,7 +132,7 @@ async function read(pathAndQuery, options = {}) {
 async function getAll(collection, options = {}) {
   const query = options.query || {};
   const pageSize = Math.min(1000, options.pageSize || config.db.pageSize);
-  const key = "db:all:" + collection + ":" + hash(JSON.stringify(query));
+  const key = "db:all:" + collection + ":" + pageSize + ":" + hash(JSON.stringify(query));
   const ttl = options.ttl != null ? options.ttl : config.cache.dbTtl;
   const staleTtl = options.staleTtl != null ? options.staleTtl : config.cache.dbStaleTtl;
 

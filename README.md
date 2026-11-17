@@ -78,7 +78,7 @@ Security model:
 | Session storage | Server-side store (Redis when configured, bounded memory otherwise). |
 | Cookie | `httpOnly`, `SameSite=Strict`, `Secure` in production, `__Host-` prefix in production. |
 | CSRF | Per-session token required on every mutating admin/database request. |
-| Expiry | Idle timeout plus an absolute lifetime; the CSRF token rotates periodically and the session id is regenerated on demand. |
+| Expiry | Server-enforced idle timeout plus an absolute lifetime; the CSRF token rotates periodically and the session id is regenerated on demand. |
 | Binding | User-agent bound by default (IP binding optional). |
 | Limits | Per-address and per-username login throttling, global API limits and write limits. |
 | Revocation | Revoke one session or every other session; a global revocation epoch invalidates old cookies instantly. |
@@ -198,6 +198,7 @@ Then use the `d74.sid` cookie from a successful login for `/api/admin/*` reads a
 - Static serving blocks `server/`, `node_modules/`, dotfiles, directory listings and path traversal.
 - Helmet sets CSP, `X-Content-Type-Options`, `X-Frame-Options`, a strict referrer policy and a permissions policy. The CSP keeps `'unsafe-eval'` and the JW Player CDN because JW Player 8 requires them.
 - Login, signup, unlock, admin login and YouTube endpoints are rate limited.
+- Administrator sessions expire on the server for both idle time and absolute age; a long-lived admin event stream is revalidated and dropped when its session is revoked, logged out or idle-expired.
 - API responses are `no-store`; public cached database responses use a short `max-age`/`stale-while-revalidate` window.
 - Download passwords are compared server-side with a timing-safe comparison.
 - Legacy plaintext accounts are upgraded to scrypt on their next successful login.

@@ -61,7 +61,7 @@ class EventHub {
     }
   }
 
-  addClient(req, res, { admin = false } = {}) {
+  addClient(req, res, { admin = false, validate = null } = {}) {
     const id = crypto.randomBytes(8).toString("hex");
     const client = { id, req, res, admin, startedAt: Date.now() };
     this.clients.set(id, client);
@@ -82,23 +82,39 @@ class EventHub {
     };
     this.write(client, hello);
 
-    const heartbeat = setInterval(() => {
+    let heartbeat = null;
+    let guard = null;
+    const cleanup = () => {
+      if (heartbeat) clearInterval(heartbeat);
+      if (guard) clearInterval(guard);
+      this.removeClient(id);
+    };
+
+    heartbeat = setInterval(() => {
       try {
         res.write(": ping " + Date.now() + "\n\n");
       } catch (_) {
-        this.removeClient(id);
+        cleanup();
       }
     }, 25000);
     heartbeat.unref?.();
 
-    req.on("close", () => {
-      clearInterval(heartbeat);
-      this.removeClient(id);
-    });
-    req.on("error", () => {
-      clearInterval(heartbeat);
-      this.removeClient(id);
-    });
+    // A long-lived admin stream must not outlive its session. Re-check
+    // the session periodically and drop the client once it is revoked.
+    if (admin && typeof validate === "function") {
+      guard = setInterval(async () => {
+        try {
+          const ok = await validate();
+          if (!ok) cleanup();
+        } catch (_) {
+          cleanup();
+        }
+      }, 60000);
+      guard.unref?.();
+    }
+
+    req.on("close", cleanup);
+    req.on("error", cleanup);
 
     return client;
   }

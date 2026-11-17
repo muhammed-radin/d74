@@ -132,13 +132,23 @@ if (!adminPasswordHash && env.ADMIN_PASSWORD) {
 const adminSessionHours = Math.max(1, Math.min(168, num(env.ADMIN_SESSION_HOURS, 12)));
 const adminIdleMinutes = Math.max(5, Math.min(adminSessionHours * 60, num(env.ADMIN_SESSION_IDLE_MINUTES, 45)));
 
+function trustProxySetting(value) {
+  if (value === undefined || value === null || value === "") return 0;
+  const text = String(value).trim();
+  if (/^\d+$/.test(text)) return Number(text);
+  if (["1", "true", "yes", "on"].includes(text.toLowerCase())) return true;
+  if (["0", "false", "no", "off"].includes(text.toLowerCase())) return false;
+  // Express also accepts "loopback" and subnet expressions.
+  return text;
+}
+
 const config = {
   root: ROOT,
   env: NODE_ENV,
   isProd: IS_PROD,
   isTest: IS_TEST,
   port: num(env.PORT, 3005),
-  trustProxy: env.TRUST_PROXY ? bool(env.TRUST_PROXY) : num(env.TRUST_PROXY_HOPS, 0),
+  trustProxy: trustProxySetting(env.TRUST_PROXY !== undefined ? env.TRUST_PROXY : env.TRUST_PROXY_HOPS),
   publicOrigin: String(env.PUBLIC_ORIGIN || "").replace(/\/+$/, ""),
 
   session: {
@@ -150,7 +160,9 @@ const config = {
     maxSessions: Math.max(1, num(env.ADMIN_MAX_SESSIONS, 5)),
     bindUserAgent: bool(env.ADMIN_BIND_USER_AGENT, true),
     bindIp: bool(env.ADMIN_BIND_IP, false),
-    secureCookie: bool(env.ADMIN_COOKIE_SECURE, IS_PROD),
+    // The __Host- cookie prefix requires Secure, so production is always
+    // forced on regardless of the environment file.
+    secureCookie: IS_PROD ? true : bool(env.ADMIN_COOKIE_SECURE, false),
   },
 
   admin: {

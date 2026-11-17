@@ -130,7 +130,8 @@
 ### 0Z ( Express rebuild, secure admin, analytics & caching )
 - replaced the single-file server with an Express app, routers, structured logging and graceful shutdown
 - added Helmet CSP, CORS origin control, cross-origin mutation guard, request ids and strict body limits
-- rebuilt administrator auth as server-side sessions: httpOnly SameSite=Strict cookie, CSRF tokens, idle + absolute expiry, UA binding, rotation, max sessions and global revocation
+- rebuilt administrator auth as server-side sessions: httpOnly SameSite=Strict cookie, CSRF tokens, server-enforced idle + absolute expiry, UA binding, session-id regeneration, max sessions with store eviction and global revocation
+- revalidates long-lived admin event streams so a revoked, logged-out or idle session cannot keep receiving privileged events
 - added scrypt `ADMIN_PASSWORD_HASH` support with a plaintext fallback hashed at boot; removed the session id from every API response
 - added a metered data layer with Redis/in-memory cache, stale-while-revalidate, single-flight reads and write invalidation
 - added quota tracking for restdb and YouTube with optional hard stops

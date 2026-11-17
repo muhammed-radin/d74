@@ -19,7 +19,7 @@ const channels = require("../channels");
 const { hashPassword, verifyPassword, safeEqualStrings } = require("../auth");
 const { asyncHandler, clientIp, hash } = require("../http");
 const { rateLimit } = require("../rate-limit");
-const { sessionInfo } = require("../sessions");
+const { sessionInfo, stillActive } = require("../sessions");
 
 const router = express.Router();
 
@@ -183,7 +183,12 @@ router.post(
     let valid = verifyPassword(password, record);
     let upgraded = false;
 
-    if (!valid && typeof record.password === "string" && record.password === password) {
+    if (
+      !valid &&
+      typeof record.password === "string" &&
+      record.password &&
+      safeEqualStrings(record.password, password)
+    ) {
       valid = true;
       const { salt, hash: passwordHash } = hashPassword(password);
       db.write("PUT", "account/" + encodeURIComponent(record._id), {
@@ -297,7 +302,12 @@ router.get(
   "/events",
   asyncHandler(async (req, res) => {
     const info = await sessionInfo(req).catch(() => null);
-    events.addClient(req, res, { admin: Boolean(info) });
+    events.addClient(req, res, {
+      admin: Boolean(info),
+      // Long-lived admin streams re-check the session so revocation
+      // (or logout) ends them instead of leaving a privileged feed open.
+      validate: info ? () => stillActive(req) : null,
+    });
   })
 );
 

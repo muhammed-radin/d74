@@ -54,7 +54,9 @@ function safeArray(value) {
 }
 
 function currentSessionKey(req) {
-  return req.admin && req.admin.sid ? hash(req.admin.sid) : "";
+  // Derive the public session key from the live session id. The raw id is
+  // never included in a response; only this hash is compared client-side.
+  return req.sessionID ? hash(req.sessionID) : "";
 }
 
 /* ------------------------------ login ------------------------------ */

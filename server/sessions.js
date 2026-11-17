@@ -138,7 +138,7 @@ async function startAdminSession(req, meta = {}) {
   };
   await cache.set(SESSION_KEY_PREFIX + sid, record, config.session.absoluteHours * 3600);
   await cache.sadd(SESSION_SET_KEY, sid, config.session.absoluteHours * 3600 + 3600);
-  await enforceSessionLimit(sid);
+  await enforceSessionLimit(req, sid);
 
   events.broadcast("security:login", {
     name: record.name,
@@ -161,6 +161,7 @@ async function sessionInfoFrom(req, fresh = false) {
 
   let invalid = null;
   if (!data.absoluteExpiresAt || data.absoluteExpiresAt <= now) invalid = "expired";
+  else if (now - Number(data.lastSeen || 0) > config.session.idleMinutes * 60000) invalid = "idle";
   else if (Number(data.epoch) !== Number(epoch)) invalid = "revoked";
   else if (config.session.bindUserAgent && data.uaHash && data.uaHash !== uaHash) invalid = "user-agent";
   else if (config.session.bindIp && data.ipHash && data.ipHash !== ipHash) invalid = "ip";
@@ -201,6 +202,33 @@ async function sessionInfoFrom(req, fresh = false) {
 
 function sessionInfo(req) {
   return sessionInfoFrom(req);
+}
+
+/* Re-read the session from the store. Used by long-lived connections
+   (SSE) so a logged-out, revoked or idle session cannot keep receiving
+   privileged events just because its request never completed. */
+async function stillActive(req) {
+  const sid = req.sessionID;
+  const store = req.app && req.app.get ? req.app.get("d74.sessionStore") : null;
+  if (!sid || !store || typeof store.get !== "function") return false;
+
+  const stored = await new Promise((resolve) => {
+    try {
+      store.get(sid, (error, value) => resolve(error ? null : value));
+    } catch (_) {
+      resolve(null);
+    }
+  });
+  const data = stored && stored[ADMIN_KEY];
+  if (!data) return false;
+
+  const now = Date.now();
+  if (!data.absoluteExpiresAt || data.absoluteExpiresAt <= now) return false;
+  if (now - Number(data.lastSeen || 0) > config.session.idleMinutes * 60000) return false;
+  if (Number(data.epoch) !== Number(await currentEpoch())) return false;
+  if (config.session.bindUserAgent && data.uaHash && data.uaHash !== hash(userAgent(req))) return false;
+  if (config.session.bindIp && data.ipHash && data.ipHash !== hash(clientIp(req))) return false;
+  return true;
 }
 
 async function requireAdmin(req, res, next) {
@@ -387,14 +415,25 @@ async function revokeAll(req, { keepCurrent = true } = {}) {
   return { revoked, epoch };
 }
 
-async function enforceSessionLimit(keepSid) {
+async function enforceSessionLimit(req, keepSid) {
   if (config.session.maxSessions <= 0) return;
   const records = await activeSessions({ includeFull: true });
   if (records.length <= config.session.maxSessions) return;
-  const stale = records.filter((record) => record.sidFull !== keepSid).slice(config.session.maxSessions - 1);
+  const stale = records
+    .filter((record) => record.sidFull !== keepSid)
+    .slice(config.session.maxSessions - 1);
+  const store = req.app.get("d74.sessionStore");
   for (const record of stale) {
     await cache.srem(SESSION_SET_KEY, record.sidFull);
     await cache.del(SESSION_KEY_PREFIX + record.sidFull);
+    // Drop the store entry too, otherwise the evicted cookie would keep
+    // authenticating even though it no longer appears in the session list.
+    if (store && typeof store.destroy === "function") {
+      await new Promise((resolve) => store.destroy(record.sidFull, () => resolve()));
+    }
+  }
+  if (stale.length) {
+    logger.info("Admin sessions evicted", { count: stale.length, max: config.session.maxSessions });
   }
 }
 
@@ -417,6 +456,7 @@ module.exports = {
   createSessionMiddleware,
   startAdminSession,
   sessionInfo,
+  stillActive,
   requireAdmin,
   requireCsrf,
   rotateSession,

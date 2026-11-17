@@ -219,8 +219,14 @@ class Cache {
       if (staleTtl > 0) {
         const stale = await this.get(name + ":stale");
         if (stale !== undefined) {
-          // Serve immediately, refresh in the background.
-          this.refresh(name, ttlSeconds, producer, staleTtl).catch(() => {});
+          // Serve immediately, refresh once in the background.
+          if (!this.inflight.has(name)) {
+            const promise = this.refresh(name, ttlSeconds, producer, staleTtl).finally(() => {
+              this.inflight.delete(name);
+            });
+            promise.catch(() => {});
+            this.inflight.set(name, promise);
+          }
           return stale;
         }
       }
