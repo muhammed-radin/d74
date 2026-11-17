@@ -21,7 +21,26 @@ const { youtube } = require("./server/youtube");
 const { createApp } = require("./server/app");
 
 let server = null;
+let keepAliveTimer = null;
 let shuttingDown = false;
+
+function startKeepAlive() {
+  keepAliveTimer = setInterval(() => {
+    const request = http.get(
+      {
+        hostname: "127.0.0.1",
+        port: config.port,
+        path: "/health",
+        timeout: 10000,
+      },
+      (response) => response.resume()
+    );
+
+    request.on("error", (error) => {
+      logger.warn("Keep-alive request failed", { error });
+    });
+  }, 60000);
+}
 
 async function start() {
   logger.info("Starting D74 Edits", {
@@ -58,6 +77,7 @@ async function start() {
     server.once("error", reject);
   });
 
+  startKeepAlive();
   return app;
 }
 
@@ -65,6 +85,10 @@ async function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
   logger.info("Shutting down", { signal });
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
 
   const forceExit = setTimeout(() => {
     logger.error("Graceful shutdown timed out; forcing exit");
