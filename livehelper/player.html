@@ -122,6 +122,29 @@
         });
       }
 
+      function buildSources(channel) {
+        var list = channel && Array.isArray(channel.sources) ? channel.sources : [];
+        if (!list.length && channel && channel.url) {
+          list = [{ url: channel.url, keyId: channel.k1, key: channel.k2 }];
+        }
+        return list
+          .map(function (item) {
+            var file = String((item && item.url) || "").trim();
+            if (!file) return null;
+            var source = { file: file };
+            if (item.keyId && item.key) {
+              source.drm = {
+                clearkey: {
+                  keyId: String(item.keyId),
+                  key: String(item.key),
+                },
+              };
+            }
+            return source;
+          })
+          .filter(Boolean);
+      }
+
       async function boot() {
         if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) {
           return fail("No channel selected", "Open Live TV and pick a channel to start watching.");
@@ -144,7 +167,12 @@
           return fail("Channel unavailable", "This channel could not be found. Pick another one from Live TV.");
         }
 
-        if (!channel || !channel.url) {
+        if (!channel) {
+          return fail("Channel unavailable", "This channel could not be found. Pick another one from Live TV.");
+        }
+
+        var sources = buildSources(channel);
+        if (!sources.length) {
           return fail("Stream unavailable", "This channel has no stream configured right now.");
         }
 
@@ -167,38 +195,58 @@
 
         window.jwplayer.key = config.jwplayerKey;
 
-        var url = String(channel.url);
-        var sources = [];
-        if (url.indexOf(".m3u8") !== -1) {
-          sources.push({ file: url });
-        } else if (url.indexOf(".mpd") !== -1) {
-          var source = { file: url };
-          if (channel.k1 && channel.k2) {
-            source.drm = { clearkey: { keyId: channel.k1, key: channel.k2 } };
+        function mountSource(index) {
+          if (index >= sources.length) {
+            return fail(
+              "Stream unavailable",
+              "None of this channel's sources could play. Try another channel."
+            );
           }
-          sources.push(source);
-        } else {
-          sources.push({ file: url });
-        }
 
-        playerEl.innerHTML = "";
+          try {
+            window.jwplayer("player").remove();
+          } catch (_) {}
+          playerEl.innerHTML = "";
 
-        try {
-          window.jwplayer("player").setup({
-            playlist: [{ image: "", sources: sources }],
-            autostart: true,
-            mute: true,
-            width: "100%",
-            height: "100%",
-            stretching: "uniform",
-            aspectratio: "16:9",
-            cast: {},
-            sharing: {},
-            logo: { file: "", link: "", position: "control-bar" },
+          var player = window.jwplayer("player");
+          var advanced = false;
+
+          try {
+            player.setup({
+              playlist: [
+                {
+                  image: channel.logo || "",
+                  title: channel.title || "",
+                  sources: [sources[index]],
+                },
+              ],
+              autostart: true,
+              mute: true,
+              width: "100%",
+              height: "100%",
+              stretching: "uniform",
+              aspectratio: "16:9",
+              cast: {},
+              sharing: {},
+              logo: { file: "", link: "", position: "control-bar" },
+            });
+          } catch (_) {
+            return fail("Playback error", "The stream could not start. Try another channel.");
+          }
+
+          // JW Player can fail on a dead upstream. Walk the remaining
+          // administrator-configured sources before giving up.
+          player.on("error", function () {
+            if (advanced) return;
+            advanced = true;
+            try {
+              player.remove();
+            } catch (_) {}
+            mountSource(index + 1);
           });
-        } catch (_) {
-          fail("Playback error", "The stream could not start. Try another channel.");
         }
+
+        mountSource(0);
       }
 
       boot();

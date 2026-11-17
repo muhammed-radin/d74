@@ -150,3 +150,11 @@
 - added validated `ADSENSE_*` settings, exposed only through `GET /api/config`
 - extended the CSP for AdSense scripts, ad frames and quality-check domains while keeping JW Player working
 - reserved card heights and a shortened live channel rail prevent layout shift on every breakpoint
+
+### 11 ( Live channel manager )
+- replaced the hardcoded catalogue with administrator-managed channel documents and removed every existing live channel
+- added create, edit, hide and delete controls in **Admin → Live channels**, including multiple ordered stream sources and optional DASH ClearKey pairs
+- added atomic `0600` writes, server-side validation, duplicate-id protection, audit entries, write rate limits, CSRF checks and SSE refresh events
+- public channel lists return lightweight summaries; stream URLs and DRM values stay in the single-channel response used by the player
+- the player now fails over between administrator-configured sources and uses the channel logo as its poster
+- Explore and Live TV show admin-provided logos, metadata and honest empty states; removed fixed “168 channels” copy from the public site

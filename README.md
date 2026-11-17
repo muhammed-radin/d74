@@ -1,6 +1,6 @@
 # D74 Edits
 
-Free football clips, highlights and 168 live TV channels — rebuilt as a fast, responsive site behind a hardened Express server with a secure admin control room.
+Free football clips, highlights and live TV channels — rebuilt as a fast, responsive site behind a hardened Express server with a secure admin control room.
 
 ![D74 Edits](logo.png)
 
@@ -33,15 +33,14 @@ npm install
 cp .env.example .env
 #    edit .env and fill in real values
 
-# 3. Add the live channel data (gitignored — it contains DRM keys)
-#    server/data/channels.json
-
-# 4. Run
+# 3. Run
 npm start
 # or: node server.js
 ```
 
 Open <http://localhost:3005>. The admin control room is at <http://localhost:3005/Admin/>.
+
+The live catalogue starts empty. Sign in to the admin and use **Live channels** to publish channels; no channel data is hardcoded in the site.
 
 For development with automatic restarts:
 
@@ -82,9 +81,27 @@ Security model:
 | Binding | User-agent bound by default (IP binding optional). |
 | Limits | Per-address and per-username login throttling, global API limits and write limits. |
 | Revocation | Revoke one session or every other session; a global revocation epoch invalidates old cookies instantly. |
-| Audit | Logins, logouts, revocations, syncs, cache clears and database writes are recorded. |
+| Audit | Logins, logouts, revocations, syncs, cache clears, channel changes and database writes are recorded. |
 
-The admin shell, dashboard, analytics, videos, accounts, themes, monitoring, installer and editor all share one responsive, animation-free interface. The browser only ever holds the session cookie and an in-memory CSRF token — never the session id.
+The admin shell, dashboard, analytics, videos, live channels, accounts, themes, monitoring, installer and editor all share one responsive, animation-free interface. The browser only ever holds the session cookie and an in-memory CSRF token — never the session id.
+
+## Live channels
+
+Live TV has no hardcoded catalogue. Open **Admin → Live channels** to create, edit, hide or delete channel documents. The public list is empty until at least one active channel is saved.
+
+Each document stores:
+
+| Field | Notes |
+| --- | --- |
+| `id` | Stable public id (letters, numbers, hyphens or underscores). Immutable after creation. |
+| `title` | Display name used by Explore and Live TV. |
+| `logo` | Optional http(s) URL or site-relative path. Cards fall back to initials when absent. |
+| `description`, `category`, `country`, `language` | Optional metadata shown in the admin and used by search. |
+| `status` | `active` appears publicly; `hidden` stays administrator-only. |
+| `featured`, `order` | Editorial priority and manual sort order. |
+| `sources[]` | One or more HLS, DASH or MP4 URLs, each with an optional label and format. DASH ClearKey key id/key pairs are supported. |
+
+The player walks the sources in order and fails over when an upstream is unavailable. Saving writes `server/data/channels.json` atomically with `0600` permissions. That file is gitignored because it contains private stream and DRM configuration. Public list responses expose only summaries; stream URLs and ClearKey values appear only in the single-channel response consumed by the player. Every create, update and delete is audited, rate-limited, CSRF-protected and broadcast to open admin tabs over SSE.
 
 ## YouTube sync (two channels)
 
@@ -179,8 +196,8 @@ All endpoints are served by the Express app.
 | --- | --- |
 | `GET /api/health` | Health check. |
 | `GET /api/config` | Public site config (JW Player key and validated AdSense ids). |
-| `GET /api/channels` | Channel `{ id, name }` list. |
-| `GET /api/channels/:id` | One channel's stream details + DRM keys. |
+| `GET /api/channels` | Active channel summaries `{ id, title, logo, category, country, sourceCount }`. |
+| `GET /api/channels/:id` | One active channel with its ordered sources (URLs + optional ClearKey). |
 | `POST /api/auth/signup` | Create an account (scrypt hash). |
 | `POST /api/auth/login` | Verify an account. |
 | `POST /api/videos/unlock` | Verify a download password and return the URL. |
@@ -200,6 +217,8 @@ All endpoints are served by the Express app.
 | `GET /api/admin/youtube/status` | Sync schedule and per-channel state. |
 | `POST /api/admin/youtube/sync` | Start a sync (`{ dryRun, wait, pages, maxNew }`). |
 | `POST /api/admin/cache/clear` | Clear cached data. |
+| `GET/POST /api/admin/channels` | List all channel documents or create one. |
+| `PUT/DELETE /api/admin/channels/:id` | Update or delete a channel. Writes require admin + CSRF. |
 | `GET /api/admin/videos` / `accounts` / `themes` | Admin lists. |
 | `GET/POST/PUT/DELETE /api/db/*` | Allow-listed restdb proxy. Writes require admin + CSRF. |
 
@@ -269,8 +288,8 @@ Earlier versions of this project committed real credentials to git. Deleting the
 ├── login/ signup/            # auth pages
 ├── settings/                 # theme, accent, account
 ├── 404/
-└── Admin/                    # shell, dashboard, analytics, videos, accounts,
-                              # themes, monitoring, installer, editor, login
+└── Admin/                    # shell, dashboard, analytics, videos, channels,
+                              # accounts, themes, monitoring, installer, editor, login
 ```
 
 ## Motion

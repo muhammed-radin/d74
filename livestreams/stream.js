@@ -30,6 +30,17 @@
     if (loader) loader.classList.add("is-hidden");
   }
 
+  function channelTitle(channel) {
+    return String((channel && (channel.title || channel.name)) || (channel && channel.id) || "Live TV");
+  }
+
+  function safeLogo(value) {
+    const logo = String(value || "").trim();
+    if (/^\/[^/]/.test(logo)) return logo;
+    if (/^(https?:)?\/\/[^\s]+$/i.test(logo)) return logo;
+    return "";
+  }
+
   function initials(name) {
     return String(name || "TV")
       .trim()
@@ -52,8 +63,8 @@
     if (!channel || !frame) return;
     currentId = id;
     frame.src = "../livehelper/player.html?id=" + encodeURIComponent(id);
-    if (title) title.textContent = channel.name;
-    document.title = channel.name + " · D74 Edits Live TV";
+    if (title) title.textContent = channelTitle(channel);
+    document.title = channelTitle(channel) + " · D74 Edits Live TV";
     setActive(id);
     try {
       localStorage.setItem("lastChannel", id);
@@ -75,7 +86,14 @@
     if (!list) return;
     const term = String(filter || "").trim().toLowerCase();
     const visible = channels.filter(function (channel) {
-      return !term || channel.name.toLowerCase().includes(term) || channel.id.toLowerCase().includes(term);
+      const name = channelTitle(channel);
+      return (
+        !term ||
+        name.toLowerCase().includes(term) ||
+        channel.id.toLowerCase().includes(term) ||
+        String(channel.category || "").toLowerCase().includes(term) ||
+        String(channel.country || "").toLowerCase().includes(term)
+      );
     });
 
     list.innerHTML = "";
@@ -89,14 +107,20 @@
 
     const fragment = document.createDocumentFragment();
     visible.forEach(function (channel) {
+      const name = channelTitle(channel);
+      const logo = safeLogo(channel.logo);
       const button = document.createElement("button");
       button.type = "button";
       button.className = "channel-btn" + (channel.id === currentId ? " active" : "");
       button.dataset.id = channel.id;
       button.setAttribute("aria-pressed", channel.id === currentId ? "true" : "false");
       button.innerHTML =
-        '<span class="channel-avatar">' + esc(initials(channel.name)) + "</span>" +
-        "<span>" + esc(channel.name) + "</span>" +
+        (logo
+          ? '<span class="channel-avatar channel-avatar--logo"><img src="' +
+            esc(logo) +
+            '" alt="" loading="lazy"></span>'
+          : '<span class="channel-avatar">' + esc(initials(name)) + "</span>") +
+        "<span>" + esc(name) + "</span>" +
         '<ion-icon name="play-circle-outline"></ion-icon>';
       button.addEventListener("click", function () {
         play(channel.id);
@@ -106,23 +130,30 @@
     list.appendChild(fragment);
   }
 
-  function boot(data) {
+  function boot(data, failed) {
     channels = Array.isArray(data) ? data : [];
     if (!channels.length) {
-      if (count) count.textContent = "Unavailable";
-      list.innerHTML =
-        '<div class="empty-state" style="grid-column:1/-1">' +
-        '<ion-icon name="cloud-offline-outline"></ion-icon>' +
-        "<h3>Channels unavailable</h3><p>Live TV could not load. Try refreshing.</p></div>";
+      if (count) count.textContent = failed ? "Unavailable" : "No channels yet";
+      list.innerHTML = failed
+        ? '<div class="empty-state" style="grid-column:1/-1">' +
+          '<ion-icon name="cloud-offline-outline"></ion-icon>' +
+          "<h3>Channels unavailable</h3><p>Live TV could not load. Try refreshing.</p></div>"
+        : '<div class="empty-state" style="grid-column:1/-1">' +
+          '<ion-icon name="tv-outline"></ion-icon>' +
+          "<h3>No channels yet</h3><p>Live TV channels will appear here once they are published.</p></div>";
       hideLoader();
       return;
     }
 
     channels.sort(function (a, b) {
-      return a.name.localeCompare(b.name);
+      const order = (Number(a.order) || 0) - (Number(b.order) || 0);
+      return order || channelTitle(a).localeCompare(channelTitle(b));
     });
 
-    if (count) count.textContent = channels.length + " channels available";
+    if (count) {
+      count.textContent =
+        channels.length + (channels.length === 1 ? " channel available" : " channels available");
+    }
 
     const requested = params().get("id");
     let last = "";
@@ -163,6 +194,7 @@
     try {
       data = typeof xhr.json === "function" ? xhr.json() : JSON.parse(xhr.response);
     } catch (_) {}
-    boot(data);
+    const failed = !xhr || xhr.status === 0 || xhr.status === 401 || xhr.status >= 500;
+    boot(Array.isArray(data) ? data : null, failed);
   });
 })();

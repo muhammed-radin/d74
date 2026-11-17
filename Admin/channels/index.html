@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D74 Edits | Admin live channels</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
+
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
+<body class="dark admin-body" data-admin-page="channels" data-admin-title="Live channels">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
+
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Live TV catalogue</span>
+        <h2>Live channels</h2>
+        <p>
+          Add, edit and remove the channels shown on Live TV. Each channel can hold multiple
+          stream sources so the player can fall back when an upstream is down.
+        </p>
+      </div>
+      <div class="admin-head-actions">
+        <span class="admin-count" id="channelsSummary">—</span>
+        <button class="btn btn-ghost btn-sm" type="button" id="channelsRefresh">
+          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Refresh
+        </button>
+        <button class="btn btn-primary btn-sm" type="button" id="channelNew">
+          <ion-icon name="add-outline" aria-hidden="true"></ion-icon> New channel
+        </button>
+      </div>
+    </div>
+
+    <div class="admin-channel-layout">
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title" id="channelFormTitle">New channel</span>
+          <span class="admin-badge admin-badge--accent" id="channelEditingBadge" hidden>Editing</span>
+        </div>
+        <div class="admin-panel-body">
+          <form class="admin-form" id="channelForm" novalidate>
+            <div class="admin-form-grid">
+              <div class="admin-field">
+                <label class="admin-label" for="channelId">Channel id</label>
+                <input class="admin-input" id="channelId" maxlength="64" placeholder="supersport-1"
+                  autocomplete="off" spellcheck="false" required>
+                <span class="admin-hint">Letters, numbers, hyphens or underscores. Permanent after creation.</span>
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="channelTitle">Title</label>
+                <input class="admin-input" id="channelTitle" maxlength="120" placeholder="SuperSport 1" required>
+              </div>
+
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="channelLogo">Logo URL</label>
+                <div class="admin-logo-row">
+                  <div class="admin-channel-logo" id="channelLogoPreview" aria-hidden="true">TV</div>
+                  <input class="admin-input" id="channelLogo" maxlength="2048" placeholder="https://example.com/logo.png"
+                    autocomplete="off" spellcheck="false">
+                </div>
+                <span class="admin-hint">Optional. Use an absolute http(s) URL or a path starting with /.</span>
+              </div>
+
+              <div class="admin-field">
+                <label class="admin-label" for="channelCategory">Category</label>
+                <input class="admin-input" id="channelCategory" maxlength="48" placeholder="Sports">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="channelCountry">Country</label>
+                <input class="admin-input" id="channelCountry" maxlength="48" placeholder="Global">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="channelLanguage">Language</label>
+                <input class="admin-input" id="channelLanguage" maxlength="48" placeholder="English">
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="channelOrder">Sort order</label>
+                <input class="admin-input" id="channelOrder" type="number" min="0" max="9999" step="1" value="0">
+                <span class="admin-hint">Lower numbers appear first.</span>
+              </div>
+              <div class="admin-field">
+                <label class="admin-label" for="channelStatus">Status</label>
+                <select class="admin-select" id="channelStatus">
+                  <option value="active">Active — visible on the public site</option>
+                  <option value="hidden">Hidden — admin only</option>
+                </select>
+              </div>
+              <div class="admin-field admin-field--full">
+                <label class="admin-check">
+                  <input type="checkbox" id="channelFeatured">
+                  <span>Feature this channel in the Explore rail</span>
+                </label>
+              </div>
+
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="channelDescription">Description</label>
+                <textarea class="admin-textarea" id="channelDescription" maxlength="600"
+                  placeholder="A short note about the channel, its league or region."></textarea>
+              </div>
+            </div>
+
+            <div class="admin-form-section">
+              <div class="admin-form-section-head">
+                <div>
+                  <span class="admin-label">Stream sources</span>
+                  <p class="admin-hint">
+                    Add one or more HLS, DASH or MP4 URLs. The player tries them in order.
+                    ClearKey keys are optional and only used for DASH streams.
+                  </p>
+                </div>
+                <button class="btn btn-ghost btn-sm" type="button" id="channelAddSource">
+                  <ion-icon name="add-outline" aria-hidden="true"></ion-icon> Add source
+                </button>
+              </div>
+              <div class="admin-source-list" id="channelSources"></div>
+            </div>
+
+            <div class="admin-error" id="channelError" role="alert"></div>
+
+            <div class="admin-actions">
+              <button class="btn btn-primary" type="submit" id="channelSave">Create channel</button>
+              <button class="btn btn-ghost" type="button" id="channelReset">Clear</button>
+              <button class="btn btn-danger" type="button" id="channelDelete" hidden>Delete channel</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Channel catalogue</span>
+          <span class="admin-count" id="channelsCount">—</span>
+        </div>
+        <div class="admin-toolbar">
+          <div class="admin-search">
+            <input class="admin-input" type="search" id="channelsSearch"
+              placeholder="Search title, id, category or country…" aria-label="Search channels">
+          </div>
+        </div>
+        <div class="admin-panel-body admin-panel-body--flush">
+          <div class="admin-table-wrap">
+            <table class="admin-table admin-table--channels">
+              <thead>
+                <tr>
+                  <th>Channel</th>
+                  <th class="admin-col-secondary">Category</th>
+                  <th class="admin-col-secondary">Sources</th>
+                  <th>Status</th>
+                  <th class="admin-col-secondary">Order</th>
+                  <th class="admin-col-secondary">Updated</th>
+                  <th class="is-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="channelsBody">
+                <tr><td colspan="7" class="admin-muted">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="admin-panel-foot">
+          Hidden channels stay in the catalogue but never appear on the public site.
+        </div>
+      </section>
+    </div>
+
+    <template id="channelSourceTemplate">
+      <div class="admin-source" data-source>
+        <div class="admin-source-head">
+          <span class="admin-source-title" data-source-title>Source</span>
+          <button class="btn btn-ghost btn-sm" type="button" data-source-remove>
+            <ion-icon name="trash-outline" aria-hidden="true"></ion-icon> Remove
+          </button>
+        </div>
+        <div class="admin-source-grid">
+          <div class="admin-field">
+            <label class="admin-label">Label</label>
+            <input class="admin-input" type="text" data-source-label maxlength="60" placeholder="Primary"
+              autocomplete="off" aria-label="Source label">
+          </div>
+          <div class="admin-field">
+            <label class="admin-label">Format</label>
+            <select class="admin-select" data-source-type aria-label="Source format">
+              <option value="auto">Auto detect</option>
+              <option value="hls">HLS (.m3u8)</option>
+              <option value="dash">DASH (.mpd)</option>
+              <option value="mp4">MP4 / WebM</option>
+            </select>
+          </div>
+          <div class="admin-field admin-field--full">
+            <label class="admin-label">Stream URL</label>
+            <input class="admin-input" type="url" data-source-url maxlength="4096"
+              placeholder="https://example.com/live/master.m3u8" autocomplete="off" spellcheck="false"
+              aria-label="Stream URL" required>
+          </div>
+          <div class="admin-field">
+            <label class="admin-label">ClearKey key ID</label>
+            <input class="admin-input" type="text" data-source-keyid maxlength="32"
+              placeholder="Optional — 32 hex chars" autocomplete="off" spellcheck="false"
+              aria-label="ClearKey key id">
+          </div>
+          <div class="admin-field">
+            <label class="admin-label">ClearKey key</label>
+            <input class="admin-input" type="text" data-source-key maxlength="32"
+              placeholder="Optional — 32 hex chars" autocomplete="off" spellcheck="false"
+              aria-label="ClearKey key">
+          </div>
+        </div>
+      </div>
+    </template>
+  </template>
+
+  <script src="/view/d74.js"></script>
+  <script src="/Admin/shell.js"></script>
+  <script src="/Admin/channels/channels.js"></script>
+</body>
+
+</html>

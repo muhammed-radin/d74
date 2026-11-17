@@ -15,6 +15,7 @@ const { quota } = require("../quota");
 const { events } = require("../events");
 const { analytics } = require("../analytics");
 const { youtube } = require("../youtube");
+const channels = require("../channels");
 const { verifyAdminCredentials } = require("../auth");
 const { asyncHandler, clientIp, hash, sameOrigin } = require("../http");
 const { rateLimit } = require("../rate-limit");
@@ -28,6 +29,12 @@ const adminLoginLimit = rateLimit({
   max: config.admin.maxLoginAttempts,
   skipSuccessful: true,
   key: (req) => String((req.body && req.body.username) || ""),
+});
+
+const channelWriteLimit = rateLimit({
+  name: "admin-channels",
+  windowMs: 60 * 1000,
+  max: 60,
 });
 
 function audit(req, action, meta = {}) {
@@ -379,7 +386,7 @@ router.post(
   asyncHandler(async (req, res) => {
     await cache.delPrefix("db:");
     await cache.delPrefix("yt:");
-    await cache.del("channels:file");
+    await channels.clear();
     await cache.del("football:today");
     events.broadcast("cache:cleared", { at: new Date().toISOString() }, { adminOnly: true });
     audit(req, "cache.cleared", { severity: "warn" });
@@ -431,6 +438,59 @@ router.get(
   asyncHandler(async (req, res) => {
     const rows = safeArray(await db.getAll("themes", { ttl: 60, staleTtl: 300 }));
     res.json({ total: rows.length, items: rows });
+  })
+);
+
+/* ---------------------------- channels ----------------------------- */
+
+router.get(
+  "/channels",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(async (req, res) => {
+    const items = channels.listAll();
+    res.json({ total: items.length, items });
+  })
+);
+
+router.post(
+  "/channels",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  channelWriteLimit,
+  asyncHandler(async (req, res) => {
+    const channel = await channels.create(req.body || {});
+    audit(req, "channel.created", { meta: { id: channel.id, title: channel.title } });
+    events.broadcast("channels:changed", { action: "created", id: channel.id }, { adminOnly: true });
+    res.status(201).json({ ok: true, channel });
+  })
+);
+
+router.put(
+  "/channels/:id",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  channelWriteLimit,
+  asyncHandler(async (req, res) => {
+    const channel = await channels.update(String(req.params.id || ""), req.body || {});
+    audit(req, "channel.updated", { meta: { id: channel.id, title: channel.title } });
+    events.broadcast("channels:changed", { action: "updated", id: channel.id }, { adminOnly: true });
+    res.json({ ok: true, channel });
+  })
+);
+
+router.delete(
+  "/channels/:id",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  channelWriteLimit,
+  asyncHandler(async (req, res) => {
+    const removed = await channels.remove(String(req.params.id || ""));
+    audit(req, "channel.deleted", {
+      severity: "warn",
+      meta: { id: removed.id, title: removed.title },
+    });
+    events.broadcast("channels:changed", { action: "deleted", id: removed.id }, { adminOnly: true });
+    res.json({ ok: true, id: removed.id });
   })
 );
 

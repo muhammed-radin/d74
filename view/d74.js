@@ -556,6 +556,33 @@
       return adminGet("/api/admin/themes");
     },
 
+    adminChannels() {
+      return adminGet("/api/admin/channels");
+    },
+
+    adminChannelCreate(payload) {
+      return request("/api/admin/channels", {
+        method: "POST",
+        sessionCheck: false,
+        body: normalizeBody(payload),
+      });
+    },
+
+    adminChannelUpdate(id, payload) {
+      return request("/api/admin/channels/" + encodeURIComponent(id), {
+        method: "PUT",
+        sessionCheck: false,
+        body: normalizeBody(payload),
+      });
+    },
+
+    adminChannelDelete(id) {
+      return request("/api/admin/channels/" + encodeURIComponent(id), {
+        method: "DELETE",
+        sessionCheck: false,
+      });
+    },
+
     async channels() {
       return request("/api/channels");
     },

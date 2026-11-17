@@ -96,7 +96,7 @@ router.get(
   "/channels",
   asyncHandler(async (req, res) => {
     const list = await channels.list();
-    publicCache(res, 300);
+    publicCache(res, 60);
     res.json(list);
   })
 );
@@ -110,7 +110,7 @@ router.get(
     }
     const channel = await channels.get(id);
     if (!channel) return res.status(404).json({ error: "Channel not found." });
-    publicCache(res, 300);
+    publicCache(res, 120);
     return res.json(channel);
   })
 );

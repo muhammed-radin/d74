@@ -24,7 +24,7 @@
       variant: "wide",
       house: {
         kicker: "D74 House Ad",
-        title: "168 live channels. One tap.",
+        title: "Live channels. One tap.",
         copy: "Football, sport and entertainment from around the world — free, no subscription.",
         cta: "Open Live TV",
         href: "../livestreams/",
@@ -58,7 +58,7 @@
       house: {
         kicker: "D74 House Ad",
         title: "Free football. No subscription.",
-        copy: "168 live channels plus a daily feed of downloadable clips.",
+        copy: "Live TV plus a daily feed of downloadable clips.",
         cta: "Browse Explore",
         href: "../explore/",
       },

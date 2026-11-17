@@ -382,11 +382,15 @@ function createApp() {
     }
 
     if (isApi || req.accepts(["html", "json"]) === "json") {
-      return res.status(status).json({
+      const payload = {
         error: message,
         code: error.code || (status >= 500 ? "server_error" : "request_error"),
         requestId: req.id,
-      });
+      };
+      if (status < 500 && error.fields && typeof error.fields === "object") {
+        payload.fields = error.fields;
+      }
+      return res.status(status).json(payload);
     }
 
     if (status >= 500) {

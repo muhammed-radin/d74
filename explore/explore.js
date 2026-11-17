@@ -152,6 +152,23 @@
       .toUpperCase();
   }
 
+  function channelTitle(channel) {
+    return String((channel && (channel.title || channel.name)) || (channel && channel.id) || "Live TV");
+  }
+
+  function safeLogo(value) {
+    const logo = String(value || "").trim();
+    if (/^\/[^/]/.test(logo)) return logo;
+    if (/^(https?:)?\/\/[^\s]+$/i.test(logo)) return logo;
+    return "";
+  }
+
+  function esc(value) {
+    return window.D74UI
+      ? D74UI.escapeHTML(value)
+      : String(value == null ? "" : value);
+  }
+
   function loadChannels() {
     if (!channelBox) return;
     db.channels().then(function (xhr) {
@@ -159,27 +176,41 @@
       if (!Array.isArray(data) || !data.length) {
         channelBox.innerHTML = emptyState(
           "tv-outline",
-          "Channels unavailable",
-          "Live TV is temporarily unavailable."
+          "No channels yet",
+          "Live TV channels will appear here once they are published."
         );
         return;
       }
       channelBox.innerHTML = "";
-      data.slice(0, 14).forEach(function (channel, index) {
-        const card = document.createElement("a");
-        card.className = "channel-card enter";
-        card.href = "../livestreams/?id=" + encodeURIComponent(channel.id);
-        card.style.animationDelay = Math.min(index * 40, 360) + "ms";
-        card.innerHTML =
-          '<div class="channel-logo">' +
-          (window.D74UI ? D74UI.escapeHTML(initials(channel.name)) : initials(channel.name)) +
-          "</div>" +
-          '<div class="channel-name">' +
-          (window.D74UI ? D74UI.escapeHTML(channel.name) : channel.name) +
-          "</div>" +
-          '<span class="badge badge-accent">Live</span>';
-        channelBox.appendChild(card);
-      });
+      data
+        .slice()
+        .sort(function (a, b) {
+          return (
+            Number(Boolean(b.featured)) - Number(Boolean(a.featured)) ||
+            (Number(a.order) || 0) - (Number(b.order) || 0) ||
+            channelTitle(a).localeCompare(channelTitle(b))
+          );
+        })
+        .slice(0, 14)
+        .forEach(function (channel, index) {
+          const name = channelTitle(channel);
+          const logo = safeLogo(channel.logo);
+          const card = document.createElement("a");
+          card.className = "channel-card enter";
+          card.href = "../livestreams/?id=" + encodeURIComponent(channel.id);
+          card.style.animationDelay = Math.min(index * 40, 360) + "ms";
+          card.innerHTML =
+            '<div class="channel-logo">' +
+            (logo
+              ? '<img src="' + esc(logo) + '" alt="" loading="lazy">'
+              : esc(initials(name))) +
+            "</div>" +
+            '<div class="channel-name">' +
+            esc(name) +
+            "</div>" +
+            '<span class="badge badge-accent">Live</span>';
+          channelBox.appendChild(card);
+        });
     });
   }
 

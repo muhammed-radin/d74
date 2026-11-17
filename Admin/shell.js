@@ -19,6 +19,7 @@
     { id: "dashboard", label: "Dashboard", href: ADMIN_BASE, icon: "grid-outline" },
     { id: "analytics", label: "Analytics", href: ADMIN_BASE + "analytics/", icon: "stats-chart-outline" },
     { id: "videos", label: "Videos", href: ADMIN_BASE + "videos/", icon: "videocam-outline" },
+    { id: "channels", label: "Live channels", href: ADMIN_BASE + "channels/", icon: "tv-outline" },
     { id: "accounts", label: "Accounts", href: ADMIN_BASE + "accounts/", icon: "people-outline" },
     { id: "themes", label: "Themes", href: ADMIN_BASE + "themes/", icon: "color-palette-outline" },
     { id: "monitoring", label: "Monitoring", href: ADMIN_BASE + "monitoring/", icon: "pulse-outline" },
