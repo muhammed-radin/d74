@@ -8,80 +8,87 @@
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="referrer" content="no-referrer">
   <link rel="shortcut icon" type="image/x-icon" href="../logo.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/video.js@8.23.4/dist/video-js.min.css">
 
   <style>
     :root {
       color-scheme: dark;
       --bg: #08090b;
       --text: #f2f5f7;
-      --muted: #8a96a6;
+      --muted: #9aa6b5;
       --accent: #d7ff3f;
     }
 
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      height: 100%;
-    }
-
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
       margin: 0;
+      overflow: hidden;
       background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      display: flex;
-      align-items: stretch;
     }
 
-    #player {
+    #player,
+    .video-js {
       width: 100%;
       height: 100vh;
-      min-height: 220px;
+      background: #000;
+      font-family: inherit;
+    }
+
+    .video-js .vjs-control-bar {
+      background: linear-gradient(transparent, rgba(0, 0, 0, .88));
+      min-height: 4.5em;
+      padding: 1.25em .6em 0;
+    }
+
+    .video-js .vjs-play-progress,
+    .video-js .vjs-volume-level {
+      background: var(--accent);
+    }
+
+    .video-js .vjs-slider {
+      background: rgba(255, 255, 255, .2);
+    }
+
+    .video-js .vjs-big-play-button {
+      width: 2.8em;
+      height: 2.8em;
+      border: 0;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #10130b;
+      line-height: 2.8em;
+      box-shadow: 0 0 0 10px rgba(215, 255, 63, .12), 0 12px 30px rgba(0, 0, 0, .35);
+    }
+
+    .video-js:hover .vjs-big-play-button,
+    .video-js .vjs-big-play-button:focus {
+      background: #efffb3;
     }
 
     .state {
       margin: auto;
-      padding: 28px;
-      max-width: 440px;
+      padding: 40px 28px;
+      max-width: 460px;
       text-align: center;
     }
 
-    .state h1 {
-      font-size: 1.1rem;
-      margin: 0 0 8px;
-      letter-spacing: -0.01em;
-    }
-
-    .state p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.86rem;
-      line-height: 1.55;
-    }
-
+    .state h1 { margin: 0 0 8px; font-size: 1.1rem; }
+    .state p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.55; }
     .spinner {
       width: 34px;
       height: 34px;
       margin: 0 auto 18px;
-      border-radius: 50%;
-      border: 3px solid rgba(255, 255, 255, 0.12);
+      border: 3px solid rgba(255, 255, 255, .12);
       border-top-color: var(--accent);
-      animation: spin 0.9s linear infinite;
+      border-radius: 50%;
+      animation: spin .9s linear infinite;
     }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
+    @keyframes spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) {
-      .spinner {
-        animation-duration: 2.4s;
-      }
+      .spinner { animation-duration: 2.4s; }
     }
   </style>
 </head>
@@ -90,12 +97,16 @@
   <div id="player" aria-live="polite"></div>
 
   <script src="../view/d74.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/video.js@8.23.4/dist/video.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-dash@5.0.0/dist/videojs-contrib-dash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-eme@5.0.0/dist/videojs-contrib-eme.min.js"></script>
   <script>
     "use strict";
 
     (function () {
       var playerEl = document.getElementById("player");
       var id = new URLSearchParams(window.location.search).get("id") || "";
+      var player = null;
 
       function state(title, message, spinning) {
         playerEl.innerHTML =
@@ -106,43 +117,118 @@
       }
 
       function fail(title, message) {
+        if (player) {
+          player.dispose();
+          player = null;
+        }
         state(title, message, false);
       }
 
-      function loadScript(src) {
-        return new Promise(function (resolve, reject) {
-          var script = document.createElement("script");
-          script.src = src;
-          script.async = true;
-          script.onload = resolve;
-          script.onerror = function () {
-            reject(new Error("script"));
-          };
-          document.head.appendChild(script);
-        });
+      function playbackUrl(url) {
+        var value = String(url || "").trim();
+        if (window.location.protocol === "https:" && /^http:\/\//i.test(value)) {
+          return "https://" + value.slice(7);
+        }
+        return value;
+      }
+
+      function sourceTypes(url, declaredType) {
+        var type = String(declaredType || "").trim().toLowerCase();
+        var path = String(url || "").split(/[?#]/)[0].toLowerCase();
+        if (type === "hls" || path.endsWith(".m3u8")) return ["application/x-mpegURL"];
+        if (type === "dash" || path.endsWith(".mpd")) return ["application/dash+xml"];
+        if (type === "mp4" || path.endsWith(".mp4") || path.endsWith(".m4v")) return ["video/mp4"];
+        if (path.endsWith(".webm")) return ["video/webm"];
+        // Auto/extensionless stream URLs are commonly HLS endpoints.
+        return ["application/x-mpegURL", "video/mp4"];
+      }
+
+      function base64UrlFromHex(value) {
+        var bytes = String(value || "").match(/.{1,2}/g) || [];
+        var binary = bytes.map(function (item) {
+          return String.fromCharCode(parseInt(item, 16));
+        }).join("");
+        return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      }
+
+      function clearKeySystem(source) {
+        if (!source.keyId || !source.key) return null;
+        return {
+          "org.w3.clearkey": {
+            getLicense: function (_, __, callback) {
+              var license = JSON.stringify({
+                keys: [{
+                  kty: "oct",
+                  kid: base64UrlFromHex(source.keyId),
+                  k: base64UrlFromHex(source.key)
+                }],
+                type: "temporary"
+              });
+              callback(null, new TextEncoder().encode(license));
+            }
+          }
+        };
       }
 
       function buildSources(channel) {
         var list = channel && Array.isArray(channel.sources) ? channel.sources : [];
-        if (!list.length && channel && channel.url) {
-          list = [{ url: channel.url, keyId: channel.k1, key: channel.k2 }];
-        }
-        return list
-          .map(function (item) {
-            var file = String((item && item.url) || "").trim();
-            if (!file) return null;
-            var source = { file: file };
-            if (item.keyId && item.key) {
-              source.drm = {
-                clearkey: {
-                  keyId: String(item.keyId),
-                  key: String(item.key),
-                },
-              };
-            }
+        return list.map(function (item) {
+          var url = playbackUrl(item && item.url);
+          if (!url) return null;
+          var keyId = item && item.keyId;
+          var key = item && item.key;
+          return sourceTypes(url, item && item.type).map(function (type) {
+            var source = { src: url, type: type, keyId: keyId, key: key };
+            source.keySystems = clearKeySystem(source);
             return source;
-          })
-          .filter(Boolean);
+          });
+        }).filter(Boolean).flat();
+      }
+
+      function mountSource(sources, index, channel) {
+        if (index >= sources.length) {
+          return fail(
+            "Stream format unsupported",
+            "None of this channel's sources could play in this browser. Try another channel."
+          );
+        }
+
+        var source = sources[index];
+        playerEl.innerHTML =
+          '<video id="videojs-player" class="video-js vjs-big-play-centered" controls ' +
+          'playsinline preload="auto" poster=""></video>';
+        var videoEl = document.getElementById("videojs-player");
+        videoEl.poster = channel.logo || "";
+        player = videojs(videoEl, {
+          autoplay: true,
+          muted: true,
+          responsive: true,
+          fluid: true,
+          liveui: true,
+          html5: {
+            vhs: { overrideNative: true }
+          },
+          inactivityTimeout: 2500,
+          playbackRates: [0.5, 1, 1.5, 2],
+          controlBar: {
+            pictureInPictureToggle: true,
+            volumePanel: { inline: false }
+          }
+        });
+
+        if (source.keySystems && typeof player.eme === "function") {
+          player.eme();
+        }
+        player.src(source);
+
+        var advanced = false;
+        player.on("error", function () {
+          if (advanced) return;
+          advanced = true;
+          player.dispose();
+          player = null;
+          mountSource(sources, index + 1, channel);
+        });
       }
 
       async function boot() {
@@ -151,102 +237,22 @@
         }
 
         state("Loading channel…", "Fetching the stream details.", true);
-
-        var config = {};
-        try {
-          var configRes = await D74Api.request("/api/config");
-          config = configRes.json() || {};
-        } catch (_) {}
-
         var channel = null;
         try {
-          var channelRes = await D74Api.request("/api/channels/" + encodeURIComponent(id));
-          if (!channelRes.ok) throw new Error("not found");
-          channel = channelRes.json();
+          var response = await D74Api.request("/api/channels/" + encodeURIComponent(id));
+          if (!response.ok) throw new Error("not found");
+          channel = response.json();
         } catch (_) {
           return fail("Channel unavailable", "This channel could not be found. Pick another one from Live TV.");
         }
 
-        if (!channel) {
-          return fail("Channel unavailable", "This channel could not be found. Pick another one from Live TV.");
-        }
-
+        if (!channel) return fail("Channel unavailable", "This channel could not be found.");
         var sources = buildSources(channel);
-        if (!sources.length) {
-          return fail("Stream unavailable", "This channel has no stream configured right now.");
-        }
-
-        if (!config.jwplayerKey) {
-          return fail(
-            "Player not configured",
-            "The video player key is missing on the server. Add JWPLAYER_KEY to .env and restart."
-          );
-        }
-
-        try {
-          await loadScript("https://ssl.p.jwpcdn.com/player/v/8.26.0/jwplayer.js");
-        } catch (_) {
-          return fail("Player failed to load", "Check your connection and refresh to try again.");
-        }
-
-        if (!window.jwplayer) {
+        if (!sources.length) return fail("Stream unavailable", "This channel has no stream configured right now.");
+        if (typeof videojs !== "function") {
           return fail("Player failed to load", "The video player could not start. Refresh to try again.");
         }
-
-        window.jwplayer.key = config.jwplayerKey;
-
-        function mountSource(index) {
-          if (index >= sources.length) {
-            return fail(
-              "Stream unavailable",
-              "None of this channel's sources could play. Try another channel."
-            );
-          }
-
-          try {
-            window.jwplayer("player").remove();
-          } catch (_) {}
-          playerEl.innerHTML = "";
-
-          var player = window.jwplayer("player");
-          var advanced = false;
-
-          try {
-            player.setup({
-              playlist: [
-                {
-                  image: channel.logo || "",
-                  title: channel.title || "",
-                  sources: [sources[index]],
-                },
-              ],
-              autostart: true,
-              mute: true,
-              width: "100%",
-              height: "100%",
-              stretching: "uniform",
-              aspectratio: "16:9",
-              cast: {},
-              sharing: {},
-              logo: { file: "", link: "", position: "control-bar" },
-            });
-          } catch (_) {
-            return fail("Playback error", "The stream could not start. Try another channel.");
-          }
-
-          // JW Player can fail on a dead upstream. Walk the remaining
-          // administrator-configured sources before giving up.
-          player.on("error", function () {
-            if (advanced) return;
-            advanced = true;
-            try {
-              player.remove();
-            } catch (_) {}
-            mountSource(index + 1);
-          });
-        }
-
-        mountSource(0);
+        mountSource(sources, 0, channel);
       }
 
       boot();

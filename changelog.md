@@ -102,7 +102,7 @@
 - redesigned every page with a new responsive design system
 - added animated landing page, ambient orbs, glass cards and scroll reveals
 - added `server.js` (zero dependencies) to serve files and proxy privileged APIs
-- moved restdb, RapidAPI, JW Player and admin credentials into `.env`
+- moved restdb, RapidAPI, video player and admin credentials into `.env`
 - removed browser-side Firebase access and all hard-coded API keys
 - passwords now hashed with scrypt; legacy accounts upgrade on next login
 - download passwords verified by `POST /api/videos/unlock`; public video data no longer exposes `pw` or `url`
@@ -148,7 +148,7 @@
 - real AdSense `<ins>` units are used when `ADSENSE_CLIENT` and slot ids are configured
 - missing configuration and local previews fall back to D74 house-ad cards; blocked scripts keep the reserved card height instead of breaking the layout
 - added validated `ADSENSE_*` settings, exposed only through `GET /api/config`
-- extended the CSP for AdSense scripts, ad frames and quality-check domains while keeping JW Player working
+- extended the CSP for AdSense scripts, ad frames and quality-check domains
 - reserved card heights and a shortened live channel rail prevent layout shift on every breakpoint
 
 ### 11 ( Live channel manager )

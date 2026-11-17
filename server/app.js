@@ -62,15 +62,8 @@ function contentSecurityPolicy() {
   const scriptSrc = [
     "'self'",
     "'unsafe-inline'",
-    // JW Player compiles its player at runtime.
-    "'unsafe-eval'",
     "https://unpkg.com",
     "https://cdn.jsdelivr.net",
-    "https://cdn.jwplayer.com",
-    "https://content.jwplatform.com",
-    "https://ssl.p.jwpcdn.com",
-    "https://*.jwpcdn.com",
-    "https://*.jwplayer.com",
     // AdSense loader and the ad-serving scripts it pulls in.
     "https://pagead2.googlesyndication.com",
     "https://*.googlesyndication.com",
@@ -83,21 +76,14 @@ function contentSecurityPolicy() {
     "https://*.google.com",
     "https://fundingchoicesmessages.google.com",
   ];
-  // JW Player still requests its loader over plain HTTP on some hosts.
-  // Allow that only outside production; production stays HTTPS-only.
-  if (!config.isProd) {
-    scriptSrc.push("http://ssl.p.jwpcdn.com", "http://*.jwpcdn.com");
-  }
   const styleSrc = [
     "'self'",
     "'unsafe-inline'",
     "https://fonts.googleapis.com",
     "https://unpkg.com",
     "https://cdn.jsdelivr.net",
-    "https://cdn.jwplayer.com",
   ];
   const imgSrc = ["'self'", "data:", "blob:", "https:"];
-  // JW Player's telemetry beacon is plain HTTP in development.
   if (!config.isProd) imgSrc.push("http:");
   const mediaSrc = ["'self'", "blob:", "data:", "https:", "http:"];
   const connectSrc = ["'self'", "blob:", "https:", "http:", "wss:"];
@@ -107,9 +93,6 @@ function contentSecurityPolicy() {
     "https://youtube.com",
     "https://*.youtube.com",
     "https://*.youtube-nocookie.com",
-    "https://cdn.jwplayer.com",
-    "https://ssl.p.jwpcdn.com",
-    "https://*.jwplayer.com",
     // Ad iframes (AdSense, Google Ads, funding choices, quality checks).
     "https://*.googlesyndication.com",
     "https://*.doubleclick.net",
@@ -117,8 +100,6 @@ function contentSecurityPolicy() {
     "https://*.adtrafficquality.google",
     "https://*.google.com",
   ];
-  if (!config.isProd) frameSrc.push("http://ssl.p.jwpcdn.com");
-
   const directives = {
     "default-src": ["'self'"],
     "base-uri": ["'self'"],

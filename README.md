@@ -9,7 +9,7 @@ Free football clips, highlights and live TV channels — rebuilt as a fast, resp
 - **Broadcast-inspired design** — near-black canvas, sharp borders, one lime accent, editorial typography and restrained motion. The D74 logo appears in every navigation bar.
 - **Screen-fit hero + motion** — the landing hero uses `svh`/`lvh`/`vh` so it fills exactly one screen. anime.js drives the headline reveal, counters, scroll reveals, pointer tilt and magnetic buttons, with reduced-motion and no-CDN fallbacks.
 - **Responsive everywhere** — public pages and the admin all work from 360 px phones to wide desktops.
-- **No secrets in the browser** — restdb, RapidAPI, JW Player and admin credentials live in `.env` and are only read by the Node process.
+- **No secrets in the browser** — restdb, RapidAPI and admin credentials live in `.env` and are only read by the Node process.
 - **Secure administrator sessions** — server-side sessions in an `httpOnly`, `SameSite=Strict` cookie; CSRF tokens; idle and absolute expiry; device binding; session-id regeneration; revoke-one and revoke-all; full audit trail.
 - **Caching that respects the quota** — restdb reads are cached with stale-while-revalidate and single-flight coalescing. Redis is used when available, otherwise a bounded in-memory cache takes over automatically.
 - **Event-driven updates** — an SSE stream pushes video, theme, account, sync and security events to open tabs. Admin pages and the public site refresh without polling.
@@ -144,7 +144,6 @@ See [`.env.example`](.env.example) for the complete, commented list. The most im
 | `RESTDB_BASE_URL` / `RESTDB_API_KEY` | restdb.io endpoint and key (server only). |
 | `RAPIDAPI_KEY` | RapidAPI key for YouTube and football. |
 | `YOUTUBE_CHANNEL_ID` / `YOUTUBE_CHANNEL_IDS` | One or more channels for the feed and cron sync. |
-| `JWPLAYER_KEY` | JW Player licence key used by the live player. |
 | `ADSENSE_CLIENT` / `ADSENSE_SLOT_*` | AdSense publisher id and placement slot ids. Leave blank to show D74 house ads. |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Administrator login. Prefer `ADMIN_PASSWORD_HASH` in production. |
 | `ADMIN_SESSION_HOURS` / `ADMIN_SESSION_IDLE_MINUTES` | Absolute and idle session lifetimes. |
@@ -186,7 +185,7 @@ ADSENSE_SLOT_LIVE_SIDE=0000000000
 
 The server validates the `ca-pub-…` publisher id and numeric slot ids; only those values reach the browser through `GET /api/config`. If the client or a slot is missing, the card renders a tasteful D74 house ad, so there is never an empty or broken placement. Local previews without the Node API use the same fallback. If a configured ad is blocked, the card keeps its reserved height and shows a neutral placeholder instead of collapsing the layout. Set `ADSENSE_ENABLED=false` to force house ads everywhere.
 
-AdSense domains are allow-listed in the CSP for scripts, frames and images. `'unsafe-eval'` remains enabled for JW Player.
+AdSense domains are allow-listed in the CSP for scripts, frames and images.
 
 ## API surface
 
@@ -195,7 +194,7 @@ All endpoints are served by the Express app.
 | Endpoint | Description |
 | --- | --- |
 | `GET /api/health` | Health check. |
-| `GET /api/config` | Public site config (JW Player key and validated AdSense ids). |
+| `GET /api/config` | Public site config and validated AdSense ids. |
 | `GET /api/channels` | Active channel summaries `{ id, title, logo, category, country, sourceCount }`. |
 | `GET /api/channels/:id` | One active channel with its ordered sources (URLs + optional ClearKey). |
 | `POST /api/auth/signup` | Create an account (scrypt hash). |
@@ -241,7 +240,7 @@ Then use the `d74.sid` cookie from a successful login for `/api/admin/*` reads a
 
 - `.env`, `server/data/channels.json`, `server/data/youtube-channels.json` and `server/data/sync-state.json` are gitignored.
 - Static serving blocks `server/`, `node_modules/`, dotfiles, directory listings and path traversal.
-- Helmet sets CSP, `X-Content-Type-Options`, `X-Frame-Options`, a strict referrer policy and a permissions policy. The CSP keeps `'unsafe-eval'` and the JW Player CDN because JW Player 8 requires them.
+- Helmet sets CSP, `X-Content-Type-Options`, `X-Frame-Options`, a strict referrer policy and a permissions policy.
 - Login, signup, unlock, admin login and YouTube endpoints are rate limited.
 - Administrator sessions expire on the server for both idle time and absolute age; a long-lived admin event stream is revalidated and dropped when its session is revoked, logged out or idle-expired.
 - API responses are `no-store`; public cached database responses use a short `max-age`/`stale-while-revalidate` window.
@@ -254,10 +253,9 @@ Earlier versions of this project committed real credentials to git. Deleting the
 
 1. Rotate the restdb.io API key.
 2. Rotate the RapidAPI key.
-3. Rotate/reissue the JW Player licence key.
-4. Change the admin password.
-5. Generate a fresh `SESSION_SECRET`.
-6. If the repository is public, consider rewriting history or starting a clean repository.
+3. Change the admin password.
+4. Generate a fresh `SESSION_SECRET`.
+5. If the repository is public, consider rewriting history or starting a clean repository.
 
 ## Project layout
 
@@ -283,7 +281,7 @@ Earlier versions of this project committed real credentials to git. Deleting the
 ├── explore/                  # clip feed + matches + channels
 ├── search/                   # search page
 ├── livestreams/              # live TV browser
-├── livehelper/player.html    # isolated JW Player page
+├── livehelper/player.html    # isolated Video.js live player
 ├── visit/                    # clip detail + download unlock
 ├── login/ signup/            # auth pages
 ├── settings/                 # theme, accent, account

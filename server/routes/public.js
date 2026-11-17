@@ -74,7 +74,6 @@ router.get("/config", (req, res) => {
   publicCache(res, 300);
   res.json({
     siteName: "D74 Edits",
-    jwplayerKey: process.env.JWPLAYER_KEY || "",
     youtubeChannel: "https://youtube.com/@d74edits67",
     theme: "dark",
     adsense: {
