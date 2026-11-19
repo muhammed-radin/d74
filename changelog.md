@@ -158,3 +158,14 @@
 - public channel lists return lightweight summaries; stream URLs and DRM values stay in the single-channel response used by the player
 - the player now fails over between administrator-configured sources and uses the channel logo as its poster
 - Explore and Live TV show admin-provided logos, metadata and honest empty states; removed fixed “168 channels” copy from the public site
+
+### 12 ( Firebase data layer & bulk sync )
+- moved the primary database from restdb to Firebase Firestore using a server-side Google service account over the REST API; restdb is kept but disabled behind `DB_PROVIDER=restdb`
+- added `server/store/` providers for Firebase, local development JSON and legacy restdb; production refuses to start without Firebase credentials and development falls back to a gitignored `0600` local file
+- moved live channels from `server/data/channels.json` into the `channels` collection so they survive server restarts; legacy files are imported once and archived
+- added a resumable bulk YouTube sync job in `server/bulk-sync.js` with per-channel progression, 30-video batches, 30-minute delays and a 300/day UTC cap
+- added **Admin → Bulk sync** with start, pause, resume, stop, sync-now, next-channel, complete-channel, finish, reset and stop-and-close controls
+- added bulk video tools: delete selected, delete all videos with typed confirmation, and bulk add by YouTube id list
+- persisted job state in the `jobs` collection so restarts resume from the exact channel, page token and pending batch; the regular cron/manual sync is locked while a bulk job runs
+- fixed Explore, Search and Live TV image fallbacks to show the D74 logo instead of an accent block or initials
+- added channel and job collections to the database allowlist, audited every bulk action and kept cookies, CORS, CSRF and admin session checks unchanged

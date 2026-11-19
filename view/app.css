@@ -947,6 +947,18 @@ ol {
   filter: brightness(0.8);
 }
 
+/* Missing YouTube thumbnails fall back to the D74 logo rather than an
+   empty accent block. */
+.clip-thumb img.is-logo {
+  object-fit: contain;
+  padding: 16%;
+}
+
+.clip-card:hover .clip-thumb img.is-logo {
+  transform: none;
+  filter: none;
+}
+
 .clip-thumb::after {
   content: "";
   position: absolute;

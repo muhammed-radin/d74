@@ -1656,3 +1656,115 @@
     padding: 0;
   }
 }
+
+/* --------------------------- bulk sync ----------------------------- */
+
+.admin-bulk-settings {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-bulk-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-bulk-controls .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 330px;
+  overflow: auto;
+}
+
+.admin-log-item {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.admin-log-item:last-child {
+  border-bottom: 0;
+}
+
+.admin-log-time {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.admin-log-item--error > span:last-child {
+  color: var(--danger);
+}
+
+.admin-video-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  max-height: 430px;
+  overflow: auto;
+}
+
+.admin-video-pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  cursor: pointer;
+}
+
+.admin-video-pick:hover {
+  border-color: var(--border-strong);
+}
+
+.admin-video-pick input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.admin-video-pick-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-video-pick-body strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.admin-table tbody tr.is-current td {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+@media (max-width: 900px) {
+  .admin-bulk-settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-bulk-controls .btn {
+    flex: 1 1 46%;
+    justify-content: center;
+  }
+}

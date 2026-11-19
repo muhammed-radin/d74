@@ -31,6 +31,63 @@ function csv(value) {
     .filter(Boolean);
 }
 
+const DB_PROVIDER = String(env.DB_PROVIDER || "firebase").trim().toLowerCase();
+
+/* Firebase credentials stay server-side. Accept the common service
+   account shapes so deployments can use an inline JSON value, a mounted
+   file, or the individual client_email/private_key variables. */
+function readJsonFile(file, label) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    console.warn("[config] Could not read " + label + ":", error.message);
+    return null;
+  }
+}
+
+function parseFirebaseAccount() {
+  const inline = String(env.FIREBASE_SERVICE_ACCOUNT || "").trim();
+  if (inline) {
+    try {
+      const text = /^[A-Za-z0-9+/=]+$/.test(inline) && !inline.startsWith("{")
+        ? Buffer.from(inline, "base64").toString("utf8")
+        : inline;
+      const parsed = JSON.parse(text);
+      if (parsed && parsed.client_email && parsed.private_key) return parsed;
+    } catch (error) {
+      console.warn("[config] FIREBASE_SERVICE_ACCOUNT is not valid JSON:", error.message);
+    }
+  }
+
+  const pathValue =
+    env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+    env.GOOGLE_APPLICATION_CREDENTIALS ||
+    "";
+  if (pathValue) {
+    const file = path.isAbsolute(pathValue) ? pathValue : path.join(ROOT, pathValue);
+    const parsed = readJsonFile(file, "Firebase service account");
+    if (parsed && parsed.client_email && parsed.private_key) return parsed;
+  }
+
+  const clientEmail = String(env.FIREBASE_CLIENT_EMAIL || "").trim();
+  const privateKey = String(env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n").trim();
+  if (clientEmail && privateKey) {
+    return {
+      type: "service_account",
+      project_id: String(env.FIREBASE_PROJECT_ID || "").trim(),
+      client_email: clientEmail,
+      private_key: privateKey,
+    };
+  }
+
+  return null;
+}
+
+const firebaseAccount = parseFirebaseAccount();
+const firebaseProjectId = String(
+  (firebaseAccount && firebaseAccount.project_id) || env.FIREBASE_PROJECT_ID || ""
+).trim();
+
 /* AdSense identifiers are public, but they still have a fixed shape.
    Reject anything else so a typo cannot leak a malformed value into
    the page or the Content-Security-Policy. */
@@ -119,10 +176,12 @@ const sessionSecret = env.SESSION_SECRET || (IS_PROD ? "" : "d74-dev-only-" + re
 
 const required = [
   ["SESSION_SECRET", Boolean(env.SESSION_SECRET)],
-  ["RESTDB_API_KEY", Boolean(env.RESTDB_API_KEY)],
   ["RAPIDAPI_KEY", Boolean(env.RAPIDAPI_KEY)],
   ["ADMIN_PASSWORD or ADMIN_PASSWORD_HASH", Boolean(env.ADMIN_PASSWORD || adminPasswordHash)],
 ];
+if (DB_PROVIDER === "restdb") {
+  required.push(["RESTDB_API_KEY", Boolean(env.RESTDB_API_KEY)]);
+}
 
 const missing = required.filter(([, present]) => !present).map(([name]) => name);
 if (missing.length && !IS_TEST) {
@@ -218,13 +277,26 @@ const config = {
   },
 
   db: {
+    provider: ["firebase", "local", "restdb"].includes(DB_PROVIDER) ? DB_PROVIDER : "firebase",
     baseUrl: String(env.RESTDB_BASE_URL || "").replace(/\/+$/, ""),
     apiKey: env.RESTDB_API_KEY || "",
     timeoutMs: Math.max(2000, num(env.DB_TIMEOUT_MS, 15000)),
     dailyLimit: Math.max(0, num(env.DB_DAILY_LIMIT, 0)),
     hardStop: bool(env.DB_QUOTA_HARD_STOP, false),
     pageSize: Math.max(50, Math.min(1000, num(env.DB_PAGE_SIZE, 1000))),
-    allowlist: new Set(["account", "videos", "custom", "themes", "promotions"]),
+    allowlist: new Set(["account", "videos", "custom", "themes", "promotions", "channels", "jobs"]),
+    localFile: String(env.LOCAL_DB_FILE || path.join(ROOT, "server", "data", "local-db.json")),
+    firebase: {
+      projectId: firebaseProjectId,
+      account: firebaseAccount,
+      collectionPrefix: String(env.FIREBASE_COLLECTION_PREFIX || "").replace(/[^A-Za-z0-9_-]/g, ""),
+    },
+  },
+
+  bulk: {
+    batchSize: Math.max(1, Math.min(50, num(env.BULK_BATCH_SIZE, 30))),
+    dailyLimit: Math.max(1, Math.min(5000, num(env.BULK_DAILY_LIMIT, 300))),
+    delayMinutes: Math.max(1, Math.min(1440, num(env.BULK_DELAY_MINUTES, 30))),
   },
 
   youtube: {

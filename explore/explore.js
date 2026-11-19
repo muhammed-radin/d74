@@ -202,8 +202,8 @@
           card.innerHTML =
             '<div class="channel-logo">' +
             (logo
-              ? '<img src="' + esc(logo) + '" alt="" loading="lazy">'
-              : esc(initials(name))) +
+              ? '<img src="' + esc(logo) + '" alt="" loading="lazy" onerror="this.onerror=null;this.src=\'../logo.png\';this.classList.add(\'is-logo\')">'
+              : '<img class="is-logo" src="../logo.png" alt="" loading="lazy">') +
             "</div>" +
             '<div class="channel-name">' +
             esc(name) +

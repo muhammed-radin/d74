@@ -44,6 +44,8 @@ function bestThumbnail(thumbnails) {
 class YouTubeSync {
   constructor() {
     this.running = false;
+    this.externalLock = false;
+    this.externalLockReason = "";
     this.trigger = null;
     this.task = null;
     this.lastResult = null;
@@ -251,8 +253,15 @@ class YouTubeSync {
   }
 
   async syncAll(trigger = "manual", options = {}) {
-    if (this.running) {
-      return { started: false, running: true, message: "A sync is already running." };
+    if (this.running || this.externalLock) {
+      return {
+        started: false,
+        running: true,
+        locked: Boolean(this.externalLock),
+        message: this.externalLock
+          ? "A bulk sync job is active. Pause or stop it first."
+          : "A sync is already running.",
+      };
     }
     this.running = true;
     this.trigger = trigger;
@@ -408,12 +417,119 @@ class YouTubeSync {
   }
 
   async startSync(trigger = "manual", options = {}) {
-    if (this.running) return { started: false, running: true };
+    if (this.running || this.externalLock) {
+      return { started: false, running: true, locked: Boolean(this.externalLock) };
+    }
     // syncAll claims the lock synchronously before its first await, so it is
     // safe to start it without awaiting and return immediately.
     const promise = this.syncAll(trigger, options);
     promise.catch((error) => logger.error("YouTube sync failed", { error: error.message }));
     return { started: true, running: true };
+  }
+
+  setExternalLock(locked, reason = "") {
+    this.externalLock = Boolean(locked);
+    this.externalLockReason = locked ? String(reason || "bulk-sync") : "";
+  }
+
+  isBusy() {
+    return this.running || this.externalLock;
+  }
+
+  mapApiVideo(item) {
+    const snippet = (item && item.snippet) || {};
+    const content = (item && item.contentDetails) || {};
+    const ytid = String((item && item.id) || "").trim();
+    if (!/^[A-Za-z0-9_-]{6,20}$/.test(ytid)) return null;
+    const record = {
+      ytid,
+      title: decodeHtml(snippet.title || "Untitled clip"),
+      description: String(snippet.description || "").slice(0, 800),
+      date: snippet.publishedAt || content.publishedAt || new Date().toISOString(),
+      thumb: bestThumbnail(snippet.thumbnails),
+      url: "https://youtube.com/watch?v=" + ytid,
+      channelId: String(snippet.channelId || "").slice(0, 80),
+      channelTitle: String(snippet.channelTitle || "").slice(0, 120),
+      source: "bulk-add",
+    };
+    if (config.youtube.defaultPassword) record.pw = config.youtube.defaultPassword;
+    return record;
+  }
+
+  async addByIds(ids) {
+    const unique = [];
+    const seen = new Set();
+    for (const value of Array.isArray(ids) ? ids : []) {
+      const id = String(value || "").trim();
+      if (!/^[A-Za-z0-9_-]{6,20}$/.test(id) || seen.has(id)) continue;
+      seen.add(id);
+      unique.push(id);
+    }
+    if (!unique.length) {
+      return { requested: 0, created: 0, skipped: 0, errors: [], items: [] };
+    }
+
+    const summary = { requested: unique.length, created: 0, skipped: 0, errors: [], items: [] };
+    for (let index = 0; index < unique.length; index += 50) {
+      const chunk = unique.slice(index, index + 50);
+      try {
+        const data = await this.rapid(
+          "/videos",
+          { part: "snippet,contentDetails", id: chunk.join(",") },
+          { force: true, cacheKey: "yt:bulk-videos:" + hash(chunk.join(",")) }
+        );
+        const items = (data && Array.isArray(data.items) ? data.items : []).slice();
+        for (const item of items) {
+          const record = this.mapApiVideo(item);
+          if (!record) {
+            summary.errors.push({ ytid: item && item.id, error: "invalid_video" });
+            continue;
+          }
+          try {
+            const result = await db.write("POST", "videos", record);
+            if (result.status === 201 || result.status === 200) {
+              summary.created += 1;
+              summary.items.push({ ytid: record.ytid, status: "created" });
+            } else if (result.status === 409) {
+              summary.skipped += 1;
+              summary.items.push({ ytid: record.ytid, status: "exists" });
+            } else {
+              summary.errors.push({ ytid: record.ytid, error: "write_" + result.status });
+            }
+          } catch (error) {
+            if (error.status === 409 || error.code === "already_exists") {
+              summary.skipped += 1;
+              summary.items.push({ ytid: record.ytid, status: "exists" });
+            } else {
+              summary.errors.push({ ytid: record.ytid, error: error.message });
+            }
+          }
+        }
+        const returned = new Set(items.map((item) => String(item && item.id)));
+        chunk.forEach((id) => {
+          if (!returned.has(id)) summary.errors.push({ ytid: id, error: "not_found" });
+        });
+      } catch (error) {
+        summary.errors.push({ chunk: chunk.slice(0, 3).join(","), error: error.message, code: error.code });
+      }
+    }
+    events.broadcast("videos:bulk-added", {
+      requested: summary.requested,
+      created: summary.created,
+      skipped: summary.skipped,
+      errors: summary.errors.length,
+    }, { adminOnly: true });
+    analytics.audit("youtube.bulk-add.completed", {
+      actor: "system",
+      severity: summary.errors.length ? "warn" : "info",
+      meta: {
+        requested: summary.requested,
+        created: summary.created,
+        skipped: summary.skipped,
+        errors: summary.errors.length,
+      },
+    });
+    return summary;
   }
 
   async getFeed({ max = 20, offset = 0 } = {}) {
@@ -514,6 +630,9 @@ class YouTubeSync {
     return {
       enabled: config.youtube.syncEnabled,
       running: this.running,
+      externalLock: this.externalLock,
+      externalLockReason: this.externalLockReason || null,
+      busy: this.isBusy(),
       trigger: this.trigger,
       cron: config.youtube.syncCron,
       timezone: config.youtube.syncTimezone,

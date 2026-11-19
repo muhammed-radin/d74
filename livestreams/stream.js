@@ -118,8 +118,8 @@
         (logo
           ? '<span class="channel-avatar channel-avatar--logo"><img src="' +
             esc(logo) +
-            '" alt="" loading="lazy"></span>'
-          : '<span class="channel-avatar">' + esc(initials(name)) + "</span>") +
+            '" alt="" loading="lazy" onerror="this.onerror=null;this.src=\'/logo.png\'"></span>'
+          : '<span class="channel-avatar channel-avatar--logo"><img src="/logo.png" alt="" loading="lazy"></span>') +
         "<span>" + esc(name) + "</span>" +
         '<ion-icon name="play-circle-outline"></ion-icon>';
       button.addEventListener("click", function () {

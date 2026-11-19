@@ -18,6 +18,9 @@ const { cache } = require("./server/cache");
 const { events } = require("./server/events");
 const { analytics } = require("./server/analytics");
 const { youtube } = require("./server/youtube");
+const db = require("./server/db");
+const channels = require("./server/channels");
+const { bulkSync } = require("./server/bulk-sync");
 const { createApp } = require("./server/app");
 
 let server = null;
@@ -51,7 +54,10 @@ async function start() {
 
   await cache.init();
   await events.init();
+  await db.init();
+  await channels.init();
   await youtube.init();
+  await bulkSync.init();
 
   const app = createApp();
 

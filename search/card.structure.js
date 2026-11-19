@@ -6,7 +6,7 @@ const search_page_card = {
   create(data, id, index = 0) {
     const esc = window.D74UI ? window.D74UI.escapeHTML : (v) => String(v == null ? "" : v);
     const title = (data && data.title) || "Untitled clip";
-    const thumb = (data && data.thumb) || "";
+    const thumb = (data && data.thumb) || "../logo.png";
     const ytid = (data && data.ytid) || "";
     const date = data && data.date
       ? window.dayjs
@@ -18,7 +18,7 @@ const search_page_card = {
 <article class="clip-card enter" id="${esc(id)}" style="animation-delay:${Math.min(index * 40, 360)}ms">
   <a class="clip-link" href="../visit/?id=${encodeURIComponent(ytid)}" aria-label="${esc(title)}">
     <div class="clip-thumb">
-      <img loading="lazy" src="${esc(thumb)}" alt="" onerror="this.style.opacity=0">
+      <img loading="lazy" src="${esc(thumb)}" alt="" onerror="this.onerror=null;this.src='../logo.png';this.classList.add('is-logo');this.parentNode.classList.add('is-fallback')">
       <span class="clip-play" aria-hidden="true"><ion-icon name="play"></ion-icon></span>
       ${date ? `<span class="clip-duration">${esc(date)}</span>` : ""}
     </div>

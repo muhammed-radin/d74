@@ -583,6 +583,99 @@
       });
     },
 
+    adminBulkStatus() {
+      return adminGet("/api/admin/bulk/status");
+    },
+
+    adminBulkStart(payload) {
+      return request("/api/admin/bulk/start", {
+        method: "POST",
+        sessionCheck: false,
+        body: normalizeBody(payload || {}),
+      });
+    },
+
+    adminBulkPause() {
+      return request("/api/admin/bulk/pause", {
+        method: "POST",
+        sessionCheck: false,
+      });
+    },
+
+    adminBulkResume(payload) {
+      return request("/api/admin/bulk/resume", {
+        method: "POST",
+        sessionCheck: false,
+        body: normalizeBody(payload || {}),
+      });
+    },
+
+    adminBulkStop() {
+      return request("/api/admin/bulk/stop", {
+        method: "POST",
+        sessionCheck: false,
+      });
+    },
+
+    adminBulkNextChannel() {
+      return request("/api/admin/bulk/next-channel", {
+        method: "POST",
+        sessionCheck: false,
+      });
+    },
+
+    adminBulkCompleteChannel() {
+      return request("/api/admin/bulk/complete-channel", {
+        method: "POST",
+        sessionCheck: false,
+      });
+    },
+
+    adminBulkFinish() {
+      return request("/api/admin/bulk/finish", {
+        method: "POST",
+        sessionCheck: false,
+      });
+    },
+
+    adminBulkSyncNow() {
+      return request("/api/admin/bulk/sync-now", {
+        method: "POST",
+        sessionCheck: false,
+      });
+    },
+
+    adminBulkReset() {
+      return request("/api/admin/bulk/reset", {
+        method: "POST",
+        sessionCheck: false,
+      });
+    },
+
+    adminVideosDeleteAll(confirm) {
+      return request("/api/admin/videos/delete-all", {
+        method: "POST",
+        sessionCheck: false,
+        body: normalizeBody({ confirm }),
+      });
+    },
+
+    adminVideosBulkDelete(ids) {
+      return request("/api/admin/videos/bulk-delete", {
+        method: "POST",
+        sessionCheck: false,
+        body: normalizeBody({ ids }),
+      });
+    },
+
+    adminVideosBulkAdd(text) {
+      return request("/api/admin/videos/bulk-add", {
+        method: "POST",
+        sessionCheck: false,
+        body: normalizeBody(Array.isArray(text) ? { ids: text } : { text }),
+      });
+    },
+
     async channels() {
       return request("/api/channels");
     },

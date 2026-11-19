@@ -259,7 +259,7 @@
     if (button) button.disabled = true;
     const result = await db.adminYoutubeSync({ wait: false });
     const body = result.json() || {};
-    if (result.status === 409) Admin.toast("A sync is already running.", "warn");
+    if (result.status === 409) Admin.toast(body.error || "A sync is already running.", "warn");
     else if (!result.ok) Admin.toast(body.error || "Could not start the sync.", "error");
     else Admin.toast("Sync started. This page updates as clips arrive.", "ok");
     if (button) button.disabled = false;

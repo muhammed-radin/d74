@@ -16,6 +16,7 @@ const { events } = require("../events");
 const { analytics } = require("../analytics");
 const { youtube } = require("../youtube");
 const channels = require("../channels");
+const { bulkSync } = require("../bulk-sync");
 const { verifyAdminCredentials } = require("../auth");
 const { asyncHandler, clientIp, hash, sameOrigin } = require("../http");
 const { rateLimit } = require("../rate-limit");
@@ -35,6 +36,18 @@ const channelWriteLimit = rateLimit({
   name: "admin-channels",
   windowMs: 60 * 1000,
   max: 60,
+});
+
+const bulkControlLimit = rateLimit({
+  name: "admin-bulk",
+  windowMs: 60 * 1000,
+  max: 120,
+});
+
+const videoBulkLimit = rateLimit({
+  name: "admin-video-bulk",
+  windowMs: 60 * 1000,
+  max: 20,
 });
 
 function audit(req, action, meta = {}) {
@@ -363,8 +376,14 @@ router.post(
     const wait = Boolean(body.wait || req.query.wait) || options.dryRun;
 
     audit(req, "youtube.sync.requested", { meta: options });
-    if (youtube.running) {
-      return res.status(409).json({ error: "A sync is already running.", code: "sync_running" });
+    if (youtube.isBusy()) {
+      return res.status(409).json({
+        error: youtube.externalLock
+          ? "A bulk sync job is active. Pause or stop it before running the regular sync."
+          : "A sync is already running.",
+        code: youtube.externalLock ? "sync_locked" : "sync_running",
+        bulk: bulkSync.snapshot(),
+      });
     }
 
     if (wait) {
@@ -374,6 +393,252 @@ router.post(
 
     const started = await youtube.startSync("manual", options);
     return res.status(202).json(started);
+  })
+);
+
+/* --------------------------- bulk sync ----------------------------- */
+
+router.get(
+  "/bulk/status",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(async (req, res) => {
+    let videosCount = null;
+    try {
+      videosCount = await db.count("videos", { ttl: 10, staleTtl: 60 });
+    } catch (_) {}
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      ...bulkSync.snapshot(),
+      videosCount,
+      provider: db.providerInfo(),
+      youtube: {
+        running: youtube.running,
+        externalLock: Boolean(youtube.externalLock),
+      },
+    });
+  })
+);
+
+function bulkOptions(req) {
+  const body = req.body || {};
+  return {
+    reset: Boolean(body.reset),
+    clearVideos: Boolean(body.clearVideos),
+    batchSize: Number(body.batchSize) || undefined,
+    dailyLimit: Number(body.dailyLimit) || undefined,
+    delayMinutes: Number(body.delayMinutes) || undefined,
+  };
+}
+
+router.post(
+  "/bulk/start",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    const options = bulkOptions(req);
+    audit(req, "youtube.bulk-sync.started", { meta: options });
+
+    let cleared = null;
+    if (options.clearVideos) {
+      const removed = await db.clearCollection("videos");
+      cleared = (removed.data && removed.data.deleted) || 0;
+      audit(req, "videos.delete-all", {
+        severity: "warn",
+        meta: { deleted: cleared, reason: "bulk-sync-start" },
+      });
+    }
+
+    const result = await bulkSync.start({ ...options, reset: Boolean(options.reset || options.clearVideos) });
+    res.json({ ...result, cleared });
+  })
+);
+
+router.post(
+  "/bulk/pause",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    const result = await bulkSync.pause();
+    audit(req, "youtube.bulk-sync.paused", { severity: "warn" });
+    res.json(result);
+  })
+);
+
+router.post(
+  "/bulk/resume",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    const result = await bulkSync.resume(bulkOptions(req));
+    audit(req, "youtube.bulk-sync.resumed");
+    res.json(result);
+  })
+);
+
+router.post(
+  "/bulk/stop",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    const result = await bulkSync.stop();
+    audit(req, "youtube.bulk-sync.stopped", { severity: "warn" });
+    res.json(result);
+  })
+);
+
+router.post(
+  "/bulk/next-channel",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    const result = await bulkSync.nextChannel();
+    audit(req, "youtube.bulk-sync.next-channel", {
+      meta: { index: result.currentChannelIndex },
+    });
+    res.json(result);
+  })
+);
+
+router.post(
+  "/bulk/complete-channel",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    const result = await bulkSync.completeChannel();
+    audit(req, "youtube.bulk-sync.complete-channel", {
+      meta: { index: result.currentChannelIndex },
+    });
+    res.json(result);
+  })
+);
+
+router.post(
+  "/bulk/finish",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    await bulkSync.finish("Marked complete by administrator.");
+    audit(req, "youtube.bulk-sync.finished", { severity: "warn" });
+    res.json(bulkSync.snapshot());
+  })
+);
+
+router.post(
+  "/bulk/sync-now",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    const result = await bulkSync.syncNow();
+    audit(req, "youtube.bulk-sync.sync-now");
+    res.json(result);
+  })
+);
+
+router.post(
+  "/bulk/reset",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  bulkControlLimit,
+  asyncHandler(async (req, res) => {
+    const result = await bulkSync.reset();
+    audit(req, "youtube.bulk-sync.reset", { severity: "warn" });
+    res.json(result);
+  })
+);
+
+/* ------------------------ bulk video library ----------------------- */
+
+router.post(
+  "/videos/delete-all",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  videoBulkLimit,
+  asyncHandler(async (req, res) => {
+    const confirm = String((req.body && req.body.confirm) || "");
+    if (confirm !== "DELETE ALL VIDEOS") {
+      return res.status(400).json({
+        error: 'Type "DELETE ALL VIDEOS" to confirm.',
+        code: "confirm_required",
+      });
+    }
+    const result = await db.clearCollection("videos");
+    const deleted = (result.data && result.data.deleted) || 0;
+    audit(req, "videos.delete-all", { severity: "warn", meta: { deleted } });
+    res.json({ ok: true, deleted });
+  })
+);
+
+router.post(
+  "/videos/bulk-delete",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  videoBulkLimit,
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const raw = Array.isArray(body.ids) ? body.ids : Array.isArray(body.ytids) ? body.ytids : [];
+    const ids = Array.from(
+      new Set(
+        raw
+          .map((value) => String(value || "").trim())
+          .filter((value) => /^[A-Za-z0-9_-]{1,150}$/.test(value))
+      )
+    ).slice(0, 500);
+
+    if (!ids.length) {
+      return res.status(400).json({ error: "Select at least one video.", code: "missing_ids" });
+    }
+
+    let deleted = 0;
+    const errors = [];
+    for (const id of ids) {
+      try {
+        await db.write("DELETE", "videos/" + encodeURIComponent(id), undefined);
+        deleted += 1;
+      } catch (error) {
+        errors.push({ id, error: error.message });
+      }
+    }
+    audit(req, "videos.bulk-deleted", {
+      severity: "warn",
+      meta: { requested: ids.length, deleted, errors: errors.length },
+    });
+    res.json({ ok: true, requested: ids.length, deleted, errors });
+  })
+);
+
+router.post(
+  "/videos/bulk-add",
+  asyncHandler(sessions.requireAdmin),
+  asyncHandler(sessions.requireCsrf),
+  videoBulkLimit,
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const raw = Array.isArray(body.ids)
+      ? body.ids
+      : String(body.text || body.ids || "").split(/[\s,;]+/);
+    const ids = raw.map((value) => String(value || "").trim()).filter(Boolean).slice(0, 500);
+    if (!ids.length) {
+      return res.status(400).json({ error: "Add at least one YouTube id.", code: "missing_ids" });
+    }
+    const result = await youtube.addByIds(ids);
+    audit(req, "videos.bulk-added", {
+      severity: result.errors.length ? "warn" : "info",
+      meta: {
+        requested: result.requested,
+        created: result.created,
+        skipped: result.skipped,
+        errors: result.errors.length,
+      },
+    });
+    res.json({ ok: true, ...result });
   })
 );
 
@@ -447,7 +712,7 @@ router.get(
   "/channels",
   asyncHandler(sessions.requireAdmin),
   asyncHandler(async (req, res) => {
-    const items = channels.listAll();
+    const items = await channels.listAll();
     res.json({ total: items.length, items });
   })
 );

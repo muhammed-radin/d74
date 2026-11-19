@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D74 Edits | Bulk YouTube sync</title>
+  <link rel="shortcut icon" type="image/x-icon" href="/logo.png">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#08090b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/view/app.css">
+  <link rel="stylesheet" href="/Admin/admin.css">
+
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
+<body class="dark admin-body" data-admin-page="sync" data-admin-title="Bulk YouTube sync">
+  <a class="admin-skip" href="#adminMain">Skip to content</a>
+  <div id="adminRoot"></div>
+
+  <template id="adminPage">
+    <div class="admin-page-head">
+      <div>
+        <span class="admin-kicker">Long-running server job</span>
+        <h2>Bulk YouTube sync</h2>
+        <p>Load every channel's uploads into the database channel by channel. Batches of 30 wait 30 minutes,
+          with a 300-video daily cap. The job survives restarts and blocks the regular sync until it stops.</p>
+      </div>
+      <div class="admin-head-actions">
+        <span class="admin-badge" id="bulkStatusBadge">loading</span>
+        <button class="btn btn-ghost btn-sm" type="button" id="bulkRefresh">Refresh</button>
+      </div>
+    </div>
+
+    <div class="admin-stats">
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="pulse-outline" aria-hidden="true"></ion-icon> Job status</span>
+        <span class="admin-stat-value" id="bulkStatStatus">—</span>
+        <span class="admin-stat-meta" id="bulkStatPhase">—</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="logo-youtube" aria-hidden="true"></ion-icon> Current channel</span>
+        <span class="admin-stat-value" id="bulkStatChannel">—</span>
+        <span class="admin-stat-meta" id="bulkStatChannelMeta">—</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon> New today</span>
+        <span class="admin-stat-value" id="bulkStatToday">—</span>
+        <span class="admin-stat-meta" id="bulkStatTodayMeta">—</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="library-outline" aria-hidden="true"></ion-icon> Total created</span>
+        <span class="admin-stat-value" id="bulkStatTotal">—</span>
+        <span class="admin-stat-meta" id="bulkStatTotalMeta">—</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="server-outline" aria-hidden="true"></ion-icon> Videos in DB</span>
+        <span class="admin-stat-value" id="bulkStatDb">—</span>
+        <span class="admin-stat-meta" id="bulkStatDbMeta">—</span>
+      </div>
+      <div class="admin-stat">
+        <span class="admin-stat-label"><ion-icon name="time-outline" aria-hidden="true"></ion-icon> Next batch</span>
+        <span class="admin-stat-value" id="bulkStatNext">—</span>
+        <span class="admin-stat-meta" id="bulkStatNextMeta">—</span>
+      </div>
+    </div>
+
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Daily progress</span>
+        <span class="admin-count" id="bulkProgressMeta">—</span>
+      </div>
+      <div class="admin-panel-body">
+        <div class="admin-progress">
+          <div class="admin-progress-head">
+            <strong id="bulkProgressText">0 / 0 videos today</strong>
+            <span id="bulkProgressPercent">0%</span>
+          </div>
+          <div class="admin-progress-track">
+            <div class="admin-progress-fill" id="bulkProgressFill" style="width:0%"></div>
+          </div>
+        </div>
+        <p class="admin-hint" id="bulkProviderNote">—</p>
+      </div>
+    </div>
+
+    <div class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Job controls</span>
+        <span class="admin-count" id="bulkLockNote">—</span>
+      </div>
+      <div class="admin-panel-body admin-stack">
+        <div class="admin-form-grid admin-bulk-settings">
+          <label class="admin-field">
+            <span class="admin-label">Batch size</span>
+            <input class="admin-input" id="bulkBatchSize" type="number" min="1" max="50" value="30">
+          </label>
+          <label class="admin-field">
+            <span class="admin-label">Daily limit</span>
+            <input class="admin-input" id="bulkDailyLimit" type="number" min="1" max="5000" value="300">
+          </label>
+          <label class="admin-field">
+            <span class="admin-label">Delay between batches (minutes)</span>
+            <input class="admin-input" id="bulkDelay" type="number" min="1" max="1440" value="30">
+          </label>
+        </div>
+
+        <label class="admin-check">
+          <input type="checkbox" id="bulkClearVideos">
+          <span>Delete every video in the database before starting (fresh library)</span>
+        </label>
+
+        <div class="admin-bulk-controls">
+          <button class="btn btn-primary btn-sm" type="button" id="bulkStart">
+            <ion-icon name="play-outline" aria-hidden="true"></ion-icon> Start job
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" id="bulkPause">
+            <ion-icon name="pause-outline" aria-hidden="true"></ion-icon> Pause
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" id="bulkResume">
+            <ion-icon name="play-forward-outline" aria-hidden="true"></ion-icon> Resume
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" id="bulkStop">
+            <ion-icon name="stop-outline" aria-hidden="true"></ion-icon> Stop
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" id="bulkSyncNow">
+            <ion-icon name="flash-outline" aria-hidden="true"></ion-icon> Sync current channel now
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" id="bulkNext">
+            <ion-icon name="play-skip-forward-outline" aria-hidden="true"></ion-icon> Move to next channel
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" id="bulkComplete">
+            <ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon> Mark channel complete
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" id="bulkFinish">
+            <ion-icon name="flag-outline" aria-hidden="true"></ion-icon> Mark all complete
+          </button>
+          <button class="btn btn-ghost btn-sm" type="button" id="bulkReset">
+            <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Reset job
+          </button>
+          <button class="btn btn-danger btn-sm" type="button" id="bulkStopClose">
+            <ion-icon name="close-circle-outline" aria-hidden="true"></ion-icon> Stop &amp; close page
+          </button>
+        </div>
+        <p class="admin-hint">Start begins a fresh pass over every channel. Stop keeps the position so a later
+          Start continues from the same channel. Reset clears the job progress only; use the video tools below to
+          clear the database.</p>
+      </div>
+    </div>
+
+    <div class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Channel queue</span>
+        <span class="admin-count" id="bulkQueueCount">—</span>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Channel</th>
+              <th>Status</th>
+              <th class="is-right">Created</th>
+              <th class="is-right">Scanned</th>
+              <th class="is-right">Skipped</th>
+              <th class="is-right">Errors</th>
+              <th>Last sync</th>
+            </tr>
+          </thead>
+          <tbody id="bulkChannelRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-grid admin-grid-2 admin-mt">
+      <div class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Activity log</span>
+        </div>
+        <div class="admin-panel-body">
+          <ul class="admin-log-list" id="bulkLogList"></ul>
+        </div>
+      </div>
+
+      <div class="admin-panel">
+        <div class="admin-panel-head">
+          <span class="admin-panel-title">Bulk add by YouTube id</span>
+        </div>
+        <div class="admin-panel-body admin-stack">
+          <label class="admin-field">
+            <span class="admin-label">YouTube video ids</span>
+            <textarea class="admin-textarea" id="bulkAddText" rows="6"
+              placeholder="dQw4w9WgXcQ&#10;anotherVideoId&#10;or comma separated ids"></textarea>
+          </label>
+          <div class="admin-actions">
+            <button class="btn btn-primary btn-sm" type="button" id="bulkAddButton">
+              <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon> Add videos
+            </button>
+          </div>
+          <p class="admin-hint" id="bulkAddResult">Up to 500 ids per request. Existing ids are skipped.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Video library</span>
+        <span class="admin-count" id="bulkPickerCount">—</span>
+      </div>
+      <div class="admin-panel-body admin-stack">
+        <div class="admin-toolbar">
+          <div class="admin-toolbar-group">
+            <input class="admin-input admin-search" id="bulkVideoSearch" type="search"
+              placeholder="Filter by title, channel or YouTube id" aria-label="Filter videos">
+          </div>
+          <div class="admin-toolbar-group">
+            <button class="btn btn-ghost btn-sm" type="button" id="bulkVideoSelectAll">Select visible</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="bulkVideoClear">Clear selection</button>
+            <button class="btn btn-danger btn-sm" type="button" id="bulkVideoDelete">Delete selected</button>
+          </div>
+        </div>
+        <p class="admin-hint" id="bulkVideoNote">Select videos to delete in bulk.</p>
+        <div class="admin-video-picker" id="bulkVideoPicker"></div>
+      </div>
+    </div>
+
+    <div class="admin-panel admin-mt">
+      <div class="admin-panel-head">
+        <span class="admin-panel-title">Danger zone</span>
+      </div>
+      <div class="admin-panel-body admin-stack">
+        <p class="admin-hint">Delete every video document from the database. This cannot be undone. Channel
+          documents and account data are not affected.</p>
+        <label class="admin-field">
+          <span class="admin-label">Type DELETE ALL VIDEOS to confirm</span>
+          <input class="admin-input" id="bulkDeleteAllConfirm" type="text" autocomplete="off"
+            placeholder="DELETE ALL VIDEOS">
+        </label>
+        <div class="admin-actions">
+          <button class="btn btn-danger btn-sm" type="button" id="bulkDeleteAllButton">
+            <ion-icon name="trash-outline" aria-hidden="true"></ion-icon> Delete all videos
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="/view/d74.js?v=20261118"></script>
+  <script src="/Admin/shell.js?v=20261118"></script>
+  <script src="/Admin/sync/sync.js?v=20261118"></script>
+</body>
+
+</html>

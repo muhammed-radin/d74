@@ -2,8 +2,8 @@
 
 /* ------------------------------------------------------------------
    D74 Edits — metered data layer
-   Every restdb read goes through this module. Reads are cached (with a
-   stale-while-revalidate window) and coalesced so a burst of visitors
+   Every database read goes through this module. Reads are cached (with
+   a stale-while-revalidate window) and coalesced so a burst of visitors
    costs one upstream request instead of hundreds. Writes invalidate the
    affected collection and emit an event for connected clients.
 ------------------------------------------------------------------ */
@@ -14,6 +14,7 @@ const logger = require("./logger");
 const { cache } = require("./cache");
 const { quota } = require("./quota");
 const { events } = require("./events");
+const store = require("./store");
 
 class DataError extends Error {
   constructor(message, status = 502, code = "data_error") {
@@ -49,8 +50,7 @@ function buildPath(collection, query, max) {
 }
 
 function upstreamUrl(pathAndQuery) {
-  if (!config.db.baseUrl) throw new DataError("RESTDB_BASE_URL is not configured.", 500, "config_error");
-  return config.db.baseUrl + "/" + String(pathAndQuery).replace(/^\/+/, "");
+  return String(pathAndQuery || "").replace(/^\/+/, "");
 }
 
 async function request(method, pathAndQuery, body) {
@@ -63,53 +63,42 @@ async function request(method, pathAndQuery, body) {
     throw new DataError("Daily database quota reached. Cached data is still available.", 503, "db_quota");
   }
 
-  const headers = {
-    "x-apikey": config.db.apiKey,
-    "cache-control": "no-cache",
-    Accept: "application/json",
-  };
-  if (body !== undefined) headers["content-type"] = "application/json";
-
-  let response;
   try {
-    response = await fetch(upstreamUrl(pathAndQuery), {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(config.db.timeoutMs),
-    });
+    return await store.request(method, upstreamUrl(pathAndQuery), body);
   } catch (error) {
-    await quota.consume("db").catch(() => {});
-    throw new DataError("Data service unreachable.", 502, "db_unreachable");
+    if (error instanceof DataError) throw error;
+    throw Object.assign(new DataError(error.message || "Data service error.", error.status || 502, error.code || "data_error"), {
+      fields: error.fields,
+      firebaseStatus: error.firebaseStatus,
+    });
+  } finally {
+    if (store.remote) await quota.consume("db").catch(() => {});
   }
+}
 
-  await quota.consume("db").catch(() => {});
+async function init() {
+  return store.init();
+}
 
-  const text = await response.text();
-  let data = null;
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch (_) {
-      data = text;
-    }
+function providerInfo() {
+  return store.describe();
+}
+
+async function clearCollection(collection) {
+  if (!config.db.allowlist.has(collection)) {
+    throw new DataError("Unknown collection.", 404, "unknown_collection");
   }
-
-  if (response.status >= 500) {
-    // restdb answers POST/PUT for a collection that has not been created
-    // with a 500 "Dataobject (name) not found". Surface that precisely so
-    // the admin knows to create the collection instead of seeing a vague
-    // gateway error.
-    if (data && typeof data === "object" && /not found/i.test(String(data.message || ""))) {
-      throw new DataError(
-        'The "' + collection + '" collection does not exist in the database yet.',
-        409,
-        "missing_collection"
-      );
-    }
-    throw new DataError("Data service returned an error.", 502, "db_upstream");
-  }
-  return { status: response.status, data, headers: response.headers };
+  const result = await request("DELETE", collection);
+  await invalidate(collection);
+  events.broadcast(collection === "videos" ? "videos:cleared" : "db:cleared", {
+    collection,
+    deleted: (result.data && result.data.deleted) || 0,
+  }, { adminOnly: true });
+  logger.info("Data collection cleared", {
+    collection,
+    deleted: (result.data && result.data.deleted) || 0,
+  });
+  return result;
 }
 
 async function read(pathAndQuery, options = {}) {
@@ -282,6 +271,9 @@ module.exports = {
   write,
   invalidate,
   count,
+  clearCollection,
+  init,
+  providerInfo,
   rememberPathKey,
   prepareVideos,
   prepareVideoRecord,

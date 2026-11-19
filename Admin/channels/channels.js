@@ -371,8 +371,45 @@
     return false;
   }
 
+  /* Older cached copies of view/d74.js may not expose the channel
+     helpers yet. Fall back to D74Api so the page keeps working. */
+  function direct(path, options = {}) {
+    return D74Api.request(path, {
+      method: options.method || "GET",
+      sessionCheck: false,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+  }
+
+  function listChannels() {
+    return typeof db.adminChannels === "function"
+      ? db.adminChannels()
+      : direct("/api/admin/channels");
+  }
+
+  function createChannel(payload) {
+    return typeof db.adminChannelCreate === "function"
+      ? db.adminChannelCreate(payload)
+      : direct("/api/admin/channels", { method: "POST", body: payload });
+  }
+
+  function updateChannel(id, payload) {
+    return typeof db.adminChannelUpdate === "function"
+      ? db.adminChannelUpdate(id, payload)
+      : direct("/api/admin/channels/" + encodeURIComponent(id), {
+          method: "PUT",
+          body: payload,
+        });
+  }
+
+  function deleteChannel(id) {
+    return typeof db.adminChannelDelete === "function"
+      ? db.adminChannelDelete(id)
+      : direct("/api/admin/channels/" + encodeURIComponent(id), { method: "DELETE" });
+  }
+
   async function load() {
-    const result = await db.adminChannels();
+    const result = await listChannels();
     if (handleUnauthorized(result)) return;
     const body = result.json() || {};
     if (!result.ok) {
@@ -403,8 +440,8 @@
     if (button) button.disabled = true;
     try {
       const result = state.editing
-        ? await db.adminChannelUpdate(state.editing.id, collected.payload)
-        : await db.adminChannelCreate(collected.payload);
+        ? await updateChannel(state.editing.id, collected.payload)
+        : await createChannel(collected.payload);
       if (handleUnauthorized(result)) return;
       const body = result.json() || {};
       if (!result.ok) {
@@ -427,7 +464,7 @@
   async function removeChannel(row) {
     const name = channelTitle(row);
     if (!window.confirm('Delete the channel "' + name + '"? It disappears from Live TV immediately.')) return;
-    const result = await db.adminChannelDelete(row.id);
+    const result = await deleteChannel(row.id);
     if (handleUnauthorized(result)) return;
     const body = result.json() || {};
     if (!result.ok) {

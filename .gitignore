@@ -5,8 +5,11 @@
 
 # Server data that contains private stream/DRM configuration or runtime state
 server/data/channels.json
+server/data/channels.json.migrated-*
 server/data/youtube-channels.json
 server/data/sync-state.json
+server/data/local-db.json
+server/data/local-db.json.*
 server/data/*.tmp
 
 # Dependencies / tooling

@@ -2,24 +2,25 @@
 
 /* ------------------------------------------------------------------
    D74 Edits — live channel catalogue
-   Channels are administrator-managed documents stored in
-   server/data/channels.json. The file is gitignored because it holds
-   private stream and DRM configuration.
+   Channels are administrator-managed documents in the configured
+   database (Firebase by default), not a server-side JSON file. The
+   legacy file is imported once so an existing catalogue is not lost.
 
-   The store is versioned, validated on write, written atomically and
-   cached for public reads. Every mutation clears the cached list and
-   its stale copy so the public site updates immediately.
+   Public reads are cached and expose summaries only. Stream URLs and
+   ClearKey values stay in the single-channel response consumed by the
+   player. Writes are validated and invalidate both the channel list and
+   the database read cache.
 ------------------------------------------------------------------ */
 
 const fs = require("fs");
 const path = require("path");
 const config = require("./config");
+const db = require("./db");
 const { cache } = require("./cache");
 const logger = require("./logger");
 
-const FILE = path.join(config.root, "server", "data", "channels.json");
-const DATA_DIR = path.dirname(FILE);
-const VERSION = 1;
+const COLLECTION = "channels";
+const LEGACY_FILE = path.join(config.root, "server", "data", "channels.json");
 const LIST_KEY = "channels:list";
 const LIST_TTL = 60;
 const LIST_STALE_TTL = 240;
@@ -51,10 +52,6 @@ class ChannelError extends Error {
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function emptyStore() {
-  return { version: VERSION, updatedAt: null, channels: [] };
 }
 
 function text(value, max) {
@@ -124,11 +121,7 @@ function normalizeSource(raw, index) {
     }
   }
 
-  const source = {
-    label,
-    type,
-    url,
-  };
+  const source = { label, type, url };
   if (keyId && key) {
     source.keyId = keyId;
     source.key = key;
@@ -215,76 +208,14 @@ function normalizeChannel(body, { id, existing = null, touch = true } = {}) {
   };
 }
 
-function readStore() {
-  if (!fs.existsSync(FILE)) return emptyStore();
-  let parsed;
+function cleanChannel(row) {
+  if (!row || typeof row !== "object" || !validId(row.id)) return null;
   try {
-    parsed = JSON.parse(fs.readFileSync(FILE, "utf8"));
+    return normalizeChannel(row, { id: row.id, existing: row, touch: false });
   } catch (error) {
-    logger.warn("Could not read channels.json", { error: error.message });
-    return emptyStore();
+    logger.warn("Skipped invalid channel document", { id: row.id, error: error.message });
+    return null;
   }
-
-  // The old catalogue was an object of id -> { url, k1, k2 } documents.
-  // It is intentionally not migrated: the administrator now owns the
-  // catalogue and starts from a clean, empty store.
-  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.channels)) {
-    return emptyStore();
-  }
-
-  const channels = [];
-  parsed.channels.forEach((channel) => {
-    if (
-      !channel ||
-      typeof channel !== "object" ||
-      !validId(channel.id) ||
-      !String(channel.title || "").trim() ||
-      !Array.isArray(channel.sources)
-    ) {
-      return;
-    }
-    try {
-      channels.push(normalizeChannel(channel, { id: channel.id, existing: channel, touch: false }));
-    } catch (error) {
-      logger.warn("Skipped invalid channel document", { id: channel.id, error: error.message });
-    }
-  });
-
-  return {
-    version: Number(parsed.version) || VERSION,
-    updatedAt: parsed.updatedAt || null,
-    channels,
-  };
-}
-
-function writeStore(store) {
-  fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
-  const payload = JSON.stringify(store, null, 2) + "\n";
-  const tmp = FILE + "." + process.pid + ".tmp";
-  try {
-    fs.writeFileSync(tmp, payload, { mode: 0o600 });
-    fs.renameSync(tmp, FILE);
-  } catch (error) {
-    try {
-      fs.unlinkSync(tmp);
-    } catch (_) {}
-    throw error;
-  }
-  try {
-    fs.chmodSync(FILE, 0o600);
-  } catch (_) {}
-}
-
-let writeChain = Promise.resolve();
-
-function queueWrite(operation) {
-  const run = writeChain.then(operation, operation);
-  writeChain = run.catch(() => {});
-  return run;
-}
-
-async function invalidate() {
-  await Promise.all([cache.del(LIST_KEY), cache.del(LIST_KEY + ":stale")]);
 }
 
 function sortChannels(channels) {
@@ -329,8 +260,17 @@ function publicChannel(channel) {
   };
 }
 
-function listAll() {
-  return sortChannels(readStore().channels);
+async function readAll(options = {}) {
+  const rows = await db.getAll(COLLECTION, {
+    ttl: options.ttl != null ? options.ttl : 30,
+    staleTtl: options.staleTtl != null ? options.staleTtl : 120,
+    force: Boolean(options.force),
+  });
+  return sortChannels((Array.isArray(rows) ? rows : []).map(cleanChannel).filter(Boolean));
+}
+
+async function listAll() {
+  return readAll();
 }
 
 async function list() {
@@ -338,7 +278,7 @@ async function list() {
     LIST_KEY,
     LIST_TTL,
     async () =>
-      sortChannels(readStore().channels)
+      (await readAll({ ttl: 60, staleTtl: 180 }))
         .filter((channel) => channel.status === "active")
         .map(publicSummary),
     { staleTtl: LIST_STALE_TTL }
@@ -346,26 +286,51 @@ async function list() {
 }
 
 async function get(id) {
-  const store = readStore();
-  const channel = store.channels.find((item) => item.id === id);
+  if (!validId(id)) return null;
+  const row = await db.getRecord(COLLECTION, id, { ttl: 30, staleTtl: 120 });
+  const channel = cleanChannel(row);
   if (!channel || channel.status !== "active") return null;
   return publicChannel(channel);
 }
 
-function create(body) {
-  return queueWrite(async () => {
-    const requestedId = String((body && body.id) || "").trim();
-    if (!validId(requestedId)) {
-      throw new ChannelError(
-        "Channel id must be 1–64 characters using letters, numbers, hyphens or underscores.",
-        400,
-        "invalid_channel_id",
-        { field: "id" }
-      );
-    }
+async function invalidate() {
+  await Promise.all([cache.del(LIST_KEY), cache.del(LIST_KEY + ":stale")]);
+}
 
-    const store = readStore();
-    if (store.channels.some((channel) => channel.id === requestedId)) {
+async function findOne(id, options = {}) {
+  const row = await db.getRecord(COLLECTION, id, {
+    ttl: options.ttl != null ? options.ttl : 0,
+    staleTtl: options.staleTtl != null ? options.staleTtl : 0,
+    force: options.force !== false,
+  });
+  return cleanChannel(row);
+}
+
+async function create(body) {
+  const requestedId = String((body && body.id) || "").trim();
+  if (!validId(requestedId)) {
+    throw new ChannelError(
+      "Channel id must be 1–64 characters using letters, numbers, hyphens or underscores.",
+      400,
+      "invalid_channel_id",
+      { field: "id" }
+    );
+  }
+
+  if (await findOne(requestedId)) {
+    throw new ChannelError(
+      "A channel with that id already exists.",
+      409,
+      "channel_exists",
+      { field: "id" }
+    );
+  }
+
+  const channel = normalizeChannel(body, { id: requestedId });
+  try {
+    await db.write("POST", COLLECTION, channel);
+  } catch (error) {
+    if (error.status === 409 || error.code === "already_exists") {
       throw new ChannelError(
         "A channel with that id already exists.",
         409,
@@ -373,73 +338,163 @@ function create(body) {
         { field: "id" }
       );
     }
-
-    const channel = normalizeChannel(body, { id: requestedId });
-    store.channels.push(channel);
-    store.version = VERSION;
-    store.updatedAt = nowIso();
-    writeStore(store);
-    await invalidate();
-    return channel;
-  });
+    throw error;
+  }
+  await invalidate();
+  return channel;
 }
 
-function update(id, body) {
-  return queueWrite(async () => {
-    if (!validId(id)) {
-      throw new ChannelError("Invalid channel id.", 400, "invalid_channel_id");
-    }
-    const bodyId = String((body && body.id) || "").trim();
-    if (bodyId && bodyId !== id) {
-      throw new ChannelError(
-        "Channel id cannot be changed. Create a new channel instead.",
-        400,
-        "channel_id_immutable",
-        { field: "id" }
-      );
-    }
+async function update(id, body) {
+  if (!validId(id)) {
+    throw new ChannelError("Invalid channel id.", 400, "invalid_channel_id");
+  }
+  const bodyId = String((body && body.id) || "").trim();
+  if (bodyId && bodyId !== id) {
+    throw new ChannelError(
+      "Channel id cannot be changed. Create a new channel instead.",
+      400,
+      "channel_id_immutable",
+      { field: "id" }
+    );
+  }
 
-    const store = readStore();
-    const index = store.channels.findIndex((channel) => channel.id === id);
-    if (index === -1) {
-      throw new ChannelError("Channel not found.", 404, "channel_not_found");
-    }
+  const existing = await findOne(id);
+  if (!existing) {
+    throw new ChannelError("Channel not found.", 404, "channel_not_found");
+  }
 
-    const channel = normalizeChannel(body, { id, existing: store.channels[index] });
-    store.channels[index] = channel;
-    store.version = VERSION;
-    store.updatedAt = nowIso();
-    writeStore(store);
-    await invalidate();
-    return channel;
-  });
+  const channel = normalizeChannel(body, { id, existing });
+  await db.write("PUT", COLLECTION + "/" + encodeURIComponent(id), channel);
+  await invalidate();
+  return channel;
 }
 
-function remove(id) {
-  return queueWrite(async () => {
-    if (!validId(id)) {
-      throw new ChannelError("Invalid channel id.", 400, "invalid_channel_id");
-    }
-    const store = readStore();
-    const index = store.channels.findIndex((channel) => channel.id === id);
-    if (index === -1) {
-      throw new ChannelError("Channel not found.", 404, "channel_not_found");
-    }
-    const [removed] = store.channels.splice(index, 1);
-    store.version = VERSION;
-    store.updatedAt = nowIso();
-    writeStore(store);
-    await invalidate();
-    return { id: removed.id, title: removed.title };
-  });
+async function remove(id) {
+  if (!validId(id)) {
+    throw new ChannelError("Invalid channel id.", 400, "invalid_channel_id");
+  }
+  const existing = await findOne(id);
+  if (!existing) {
+    throw new ChannelError("Channel not found.", 404, "channel_not_found");
+  }
+  await db.write("DELETE", COLLECTION + "/" + encodeURIComponent(id), undefined);
+  await invalidate();
+  return { id: existing.id, title: existing.title };
 }
 
-function clear() {
-  return invalidate();
+async function clear() {
+  await invalidate();
+}
+
+/* --------------------------- migration ---------------------------- */
+
+function readLegacyFile() {
+  if (!fs.existsSync(LEGACY_FILE)) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(LEGACY_FILE, "utf8"));
+    if (parsed && Array.isArray(parsed.channels)) return parsed.channels;
+  } catch (error) {
+    logger.warn("Could not read legacy channels.json", { error: error.message });
+  }
+  return null;
+}
+
+function archiveLegacyFile() {
+  try {
+    const target = LEGACY_FILE + ".migrated-" + Date.now();
+    fs.renameSync(LEGACY_FILE, target);
+    return target;
+  } catch (error) {
+    logger.warn("Could not archive legacy channels.json", { error: error.message });
+    return null;
+  }
+}
+
+async function importRows(rows, source) {
+  let imported = 0;
+  for (const row of rows) {
+    try {
+      if (!row || !validId(row.id)) continue;
+      const channel = normalizeChannel(row, { id: row.id, existing: row, touch: false });
+      await db.write("PUT", COLLECTION + "/" + encodeURIComponent(channel.id), channel);
+      imported += 1;
+    } catch (error) {
+      logger.warn("Could not import channel", {
+        source,
+        id: row && row.id,
+        error: error.message,
+      });
+    }
+  }
+  return imported;
+}
+
+function readLocalFallback() {
+  const file = config.db.localFile;
+  if (!file || !fs.existsSync(file)) return [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+    const rows = parsed && parsed.collections && parsed.collections.channels;
+    if (!rows || typeof rows !== "object") return [];
+    return Object.entries(rows).map(([id, row]) => ({
+      ...(row && typeof row === "object" ? row : {}),
+      id: (row && row.id) || id,
+    }));
+  } catch (error) {
+    logger.warn("Could not read the local development database for channel migration", {
+      error: error.message,
+    });
+    return [];
+  }
+}
+
+async function init() {
+  let existing = [];
+  try {
+    existing = await readAll({ force: true, ttl: 0, staleTtl: 0 });
+  } catch (error) {
+    logger.warn("Could not check the channel database; keeping legacy file", {
+      error: error.message,
+    });
+    return;
+  }
+
+  const legacy = readLegacyFile();
+
+  if (existing.length) {
+    if (legacy) {
+      const archived = archiveLegacyFile();
+      logger.info("Channel database already has records; legacy file archived", { archived });
+    }
+    return;
+  }
+
+  let imported = 0;
+  if (legacy) {
+    imported = await importRows(legacy, "legacy-file");
+    if (imported) {
+      await invalidate();
+      const archived = archiveLegacyFile();
+      logger.info("Imported legacy channels into the database", { imported, archived });
+    }
+  }
+
+  if (imported || db.providerInfo().name === "local") return;
+
+  // Moving from the development file to Firebase: carry the channel
+  // catalogue over once, and only while the remote collection is empty.
+  const localRows = readLocalFallback();
+  if (!localRows.length) return;
+  imported = await importRows(localRows, "local-development-db");
+  if (imported) {
+    await invalidate();
+    logger.info("Imported development channels into the active database", { imported });
+  }
 }
 
 module.exports = {
   ChannelError,
+  init,
   list,
   listAll,
   get,
