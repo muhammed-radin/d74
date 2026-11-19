@@ -33,7 +33,7 @@ function startKeepAlive() {
       {
         hostname: "127.0.0.1",
         port: config.port,
-        path: "/health",
+        path: "/api/health",
         timeout: 10000,
       },
       (response) => response.resume()
