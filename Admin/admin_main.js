@@ -172,7 +172,7 @@
           Admin.escape(video.title || "Untitled") + "</span></td><td class=\"admin-muted\">" +
           Admin.escape(video.channelTitle || "—") + "</td><td class=\"is-nowrap admin-muted\">" +
           Admin.date(video.date, { dateStyle: "medium" }) + "</td><td>" +
-          (video.downloadable ? badge("ready", "ok") : badge("page only", "neutral")) +
+          (video.downloadable ? badge("download ready", "ok") : badge("no id", "neutral")) +
           "</td><td class=\"is-right\"><a class=\"btn btn-ghost btn-sm\" href=\"/Admin/edit_video/?id=" +
           encodeURIComponent(video.ytid || "") + "\">Edit</a></td></tr>"
       )

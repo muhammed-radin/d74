@@ -128,9 +128,7 @@
       source: "admin-installer",
     };
     const url = $("installUrl").value.trim();
-    const password = $("installPassword").value.trim();
     if (url) record.url = url;
-    if (password) record.pw = password;
 
     const button = $("installSave");
     if (button) button.disabled = true;

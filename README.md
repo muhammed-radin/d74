@@ -11,6 +11,7 @@ Free football clips, highlights and live TV channels — rebuilt as a fast, resp
 - **Responsive everywhere** — public pages and the admin all work from 360 px phones to wide desktops.
 - **No secrets in the browser** — Firebase service-account credentials, RapidAPI keys and admin secrets live in `.env` and are only read by the Node process.
 - **Secure administrator sessions** — server-side sessions in an `httpOnly`, `SameSite=Strict` cookie; CSRF tokens; idle and absolute expiry; device binding; session-id regeneration; revoke-one and revoke-all; full audit trail.
+- **Free downloads, no passwords** — every clip downloads without a password or PIN. A record with a direct file link uses that link; otherwise the server fetches the clip from YouTube with `yt-dlp` and streams it to the browser as an attachment, so no signed URL reaches the page.
 - **Caching that respects the quota** — Firestore reads are cached with stale-while-revalidate and single-flight coalescing. Redis is used when available, otherwise a bounded in-memory cache takes over automatically.
 - **Event-driven updates** — an SSE stream pushes video, theme, account, sync and security events to open tabs. Admin pages and the public site refresh without polling.
 - **Quota-aware YouTube sync** — a cron job paginates each channel's uploads playlist (not search) and merges multiple channels into one `videos` collection while staying inside the 500 requests/day plan.
@@ -23,7 +24,8 @@ Free football clips, highlights and live TV channels — rebuilt as a fast, resp
 - **Node.js 18+** (uses the built-in `fetch` and `AbortSignal.timeout`).
 - A Firebase project with Firestore enabled and a server-side service account.
 - A RapidAPI key.
-- Redis is optional but recommended for multi-instance deployments.
+- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) for free YouTube downloads (`pip install -U yt-dlp`, or `apt install yt-dlp`). `ffmpeg` is optional and only needed if you choose a merged format.
+- Redis is optional but recommended for multi-instance deployments. Without `REDIS_URL` the server logs `Cache driver: memory` and uses a bounded in-process cache.
 
 ## Quick start
 
@@ -159,6 +161,29 @@ The page also includes bulk video tools: select and delete thousands of records,
 
 Tune the job with `BULK_BATCH_SIZE` (default 30), `BULK_DAILY_LIMIT` (default 300) and `BULK_DELAY_MINUTES` (default 30).
 
+## Free downloads
+
+Downloads are free and no longer use a password or PIN. The viewer on `/visit/?id=…` always offers **Download free**:
+
+1. If the video record has a **direct download URL** (`url` different from the YouTube watch page), the server redirects to that file or streams it, whichever the host supports.
+2. If `url` is empty or is the normal YouTube page, the server runs `yt-dlp`, resolves the selected format and streams the media through `/api/videos/download?id=…` with `Content-Disposition: attachment`. Nothing is written to disk and no signed URL is exposed in the page.
+3. The legacy `POST /api/videos/unlock` endpoint still answers for old open tabs, but it ignores any password and simply returns the free download URL.
+
+`GET /api/videos/download?id=…&mode=url` returns JSON (`{ source, title, url, stream }`) instead of a file, so the viewer can show a clear error when YouTube asks for a bot check. `GET /api/videos/similar?id=…` powers the “More like this” rail using the clip’s channel, tags, category and title words.
+
+Install `yt-dlp` on the server (`pip install -U yt-dlp` or `apt install yt-dlp`) and keep it on `PATH`, or set `YTDLP_PATH`. On cloud/VPS addresses YouTube sometimes asks for a sign-in check; export a Netscape cookie file from a browser and point `YTDLP_COOKIES` at it.
+
+| Variable | Purpose |
+| --- | --- |
+| `YTDLP_ENABLED` | Turn the yt-dlp fallback on/off (default `true`). |
+| `YTDLP_PATH` | Binary name or absolute path (default `yt-dlp`). |
+| `YTDLP_FORMAT` | Format selector (default `best[ext=mp4]/best`, a single progressive file). |
+| `YTDLP_COOKIES` | Netscape cookies file for bot checks. |
+| `YTDLP_EXTRACTOR_ARGS` | Extra `--extractor-args`, e.g. `youtube:player_client=web`. |
+| `YTDLP_EXTRA_ARGS` | Any other yt-dlp arguments, whitespace-separated. |
+| `YTDLP_START_TIMEOUT_MS` | Time allowed before the first byte is returned (default 45 s). |
+| `DOWNLOAD_RATE_LIMIT_MAX` | Download requests per 10 minutes per address (default 30). |
+
 ## Caching and quotas
 
 - Reads of `videos`, `themes`, `promotions` and `account` go through the cached data layer. Concurrent misses collapse into a single upstream request.
@@ -185,7 +210,9 @@ See [`.env.example`](.env.example) for the complete, commented list. The most im
 | `ADSENSE_CLIENT` / `ADSENSE_SLOT_*` | AdSense publisher id and placement slot ids. Leave blank to show D74 house ads. |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Administrator login. Prefer `ADMIN_PASSWORD_HASH` in production. |
 | `ADMIN_SESSION_HOURS` / `ADMIN_SESSION_IDLE_MINUTES` | Absolute and idle session lifetimes. |
-| `REDIS_URL` | Enables Redis for cache and sessions. |
+| `REDIS_URL` | Enables Redis for cache and sessions. Without it the server logs `Cache driver: memory`. |
+| `YTDLP_PATH` / `YTDLP_COOKIES` / `YTDLP_FORMAT` | Free download binary, cookie file and format selector. |
+| `DOWNLOAD_RATE_LIMIT_MAX` | Free download requests per 10 minutes per address. |
 | `DB_DAILY_LIMIT` / `YT_DAILY_LIMIT` | Daily quota caps (`0` disables). |
 | `BULK_BATCH_SIZE` / `BULK_DAILY_LIMIT` / `BULK_DELAY_MINUTES` | Bulk sync batch size, daily cap and delay. |
 
@@ -238,7 +265,9 @@ All endpoints are served by the Express app.
 | `GET /api/channels/:id` | One active channel with its ordered sources (URLs + optional ClearKey). |
 | `POST /api/auth/signup` | Create an account (scrypt hash). |
 | `POST /api/auth/login` | Verify an account. |
-| `POST /api/videos/unlock` | Verify a download password and return the URL. |
+| `POST /api/videos/unlock` | Legacy alias. Ignores the password and returns the free download URL. |
+| `GET /api/videos/download?id=` | Free download. Streams the file (yt-dlp) or redirects to a direct link. Add `mode=url` for JSON. |
+| `GET /api/videos/similar?id=` | Related clips for the viewer (same channel, tags, category, title words). |
 | `GET /api/youtube/search` | Explore feed (RapidAPI, cached). |
 | `GET /api/youtube/videos?id=` | Clip metadata (RapidAPI, cached). |
 | `GET /api/football` | Today's matches (RapidAPI, cached). |
@@ -265,7 +294,7 @@ All endpoints are served by the Express app.
 | `GET /api/admin/videos` / `accounts` / `themes` | Admin lists. |
 | `GET/POST/PUT/DELETE /api/db/*` | Allow-listed database proxy. Writes require admin + CSRF. |
 
-Public `videos` responses are sanitised: `pw` and `url` are stripped and replaced with a computed `downloadable` boolean. Authenticated administrators can still read the full record through the admin proxy.
+Public `videos` responses are sanitised: `pw` and `url` are stripped and replaced with computed `downloadable` and `downloadSource` fields (`youtube`, `link` or `none`). Authenticated administrators can still read the full record through the admin proxy.
 
 ## Test setup
 
@@ -285,10 +314,10 @@ Then use the `d74.sid` cookie from a successful login for `/api/admin/*` reads a
 - `.env`, `server/data/channels.json` (legacy import), `server/data/youtube-channels.json`, `server/data/local-db.json` and `server/data/sync-state.json` are gitignored.
 - Static serving blocks `server/`, `node_modules/`, dotfiles, directory listings and path traversal.
 - Helmet sets CSP, `X-Content-Type-Options`, `X-Frame-Options`, a strict referrer policy and a permissions policy.
-- Login, signup, unlock, admin login and YouTube endpoints are rate limited.
+- Login, signup, download, admin login and YouTube endpoints are rate limited.
 - Administrator sessions expire on the server for both idle time and absolute age; a long-lived admin event stream is revalidated and dropped when its session is revoked, logged out or idle-expired.
 - API responses are `no-store`; public cached database responses use a short `max-age`/`stale-while-revalidate` window.
-- Download passwords are compared server-side with a timing-safe comparison.
+- Downloads are free and rate-limited per address. `yt-dlp` is spawned with an argument array (never a shell), the clip id is validated, and only http(s) direct links are followed.
 - Legacy plaintext accounts are upgraded to scrypt on their next successful login.
 
 ### ⚠️ Rotate every key
@@ -319,6 +348,7 @@ Earlier versions of this project committed real credentials to git. Deleting the
 │   ├── analytics.js          # traffic, audit and runtime metrics
 │   ├── events.js             # SSE hub
 │   ├── youtube.js            # quota-aware multi-channel cron sync
+│   ├── ytdlp.js              # free download resolver and streaming proxy
 │   ├── quota.js              # daily DB/YouTube counters
 │   └── routes/               # public, admin and database routers
 ├── .env.example              # environment template
@@ -330,7 +360,7 @@ Earlier versions of this project committed real credentials to git. Deleting the
 ├── search/                   # search page
 ├── livestreams/              # live TV browser
 ├── livehelper/player.html    # isolated Video.js live player
-├── visit/                    # clip detail + download unlock
+├── visit/                    # clip detail, player and free downloads
 ├── login/ signup/            # auth pages
 ├── settings/                 # theme, accent, account
 ├── 404/

@@ -91,12 +91,9 @@
                 <textarea class="admin-textarea" id="editDescription" maxlength="4000"></textarea>
               </div>
               <div class="admin-field admin-field--full">
-                <label class="admin-label" for="editUrl">Download URL</label>
-                <input class="admin-input" id="editUrl" maxlength="2000" placeholder="Leave empty for page link only">
-              </div>
-              <div class="admin-field">
-                <label class="admin-label" for="editPassword">Download password</label>
-                <input class="admin-input" id="editPassword" maxlength="120">
+                <label class="admin-label" for="editUrl">Direct download URL (optional)</label>
+                <input class="admin-input" id="editUrl" maxlength="2000" placeholder="Leave empty to download from YouTube with yt-dlp">
+                <p class="admin-hint">When empty, the server fetches the clip from YouTube with yt-dlp. Downloads are free and need no password.</p>
               </div>
               <div class="admin-field">
                 <label class="admin-label" for="editYtid">YouTube id</label>

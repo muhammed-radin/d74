@@ -167,6 +167,7 @@ async function invalidate(collection, id) {
   await Promise.all(index.map((entry) => cache.del("db:path:" + entry)));
   await cache.del("db:index:" + collection);
   if (id) await cache.del("db:record:" + collection + ":" + id);
+  if (collection === "videos") await cache.delPrefix("videos:similar:");
 }
 
 async function rememberPathKey(collection, pathAndQuery) {
@@ -233,8 +234,16 @@ async function count(collection, options = {}) {
 function prepareVideoRecord(record, { stripSecrets = true } = {}) {
   if (!record || typeof record !== "object") return record;
   const clean = { ...record };
-  const pageUrl = "https://youtube.com/watch?v=" + clean.ytid;
-  clean.downloadable = Boolean(clean.url) && clean.url !== pageUrl;
+  const ytid = String(clean.ytid || "").trim();
+  const hasYoutube = /^[A-Za-z0-9_-]{6,20}$/.test(ytid);
+  const directLink =
+    Boolean(clean.url) &&
+    clean.url !== "https://youtube.com/watch?v=" + ytid &&
+    clean.url !== "https://www.youtube.com/watch?v=" + ytid;
+  // Downloads are free. A direct link is used when the editor supplied
+  // one; otherwise the server fetches the clip from YouTube with yt-dlp.
+  clean.downloadable = hasYoutube || directLink;
+  clean.downloadSource = directLink ? "link" : hasYoutube ? "youtube" : "none";
   if (stripSecrets) {
     delete clean.pw;
     delete clean.url;

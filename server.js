@@ -21,6 +21,7 @@ const { youtube } = require("./server/youtube");
 const db = require("./server/db");
 const channels = require("./server/channels");
 const { bulkSync } = require("./server/bulk-sync");
+const ytdlp = require("./server/ytdlp");
 const { createApp } = require("./server/app");
 
 let server = null;
@@ -58,6 +59,18 @@ async function start() {
   await channels.init();
   await youtube.init();
   await bulkSync.init();
+
+  if (config.ytdlp.enabled) {
+    const tool = await ytdlp.available();
+    if (tool.ok) {
+      logger.info("Free downloads ready", { driver: "yt-dlp", version: tool.version });
+    } else {
+      logger.warn("yt-dlp is not available; free downloads from YouTube will fail", {
+        error: tool.error,
+        hint: "Install yt-dlp or set YTDLP_PATH.",
+      });
+    }
+  }
 
   const app = createApp();
 

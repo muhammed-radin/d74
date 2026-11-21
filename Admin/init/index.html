@@ -88,13 +88,9 @@
                 <label class="admin-label" for="installDescription">Description</label>
                 <textarea class="admin-textarea" id="installDescription" maxlength="4000"></textarea>
               </div>
-              <div class="admin-field">
-                <label class="admin-label" for="installUrl">Download URL</label>
-                <input class="admin-input" id="installUrl" maxlength="2000" placeholder="Optional direct file link">
-              </div>
-              <div class="admin-field">
-                <label class="admin-label" for="installPassword">Download password</label>
-                <input class="admin-input" id="installPassword" maxlength="120" placeholder="Optional unlock password">
+              <div class="admin-field admin-field--full">
+                <label class="admin-label" for="installUrl">Direct download URL (optional)</label>
+                <input class="admin-input" id="installUrl" maxlength="2000" placeholder="Leave empty to download from YouTube with yt-dlp">
               </div>
             </div>
 

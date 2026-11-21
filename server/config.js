@@ -310,7 +310,6 @@ const config = {
     syncMaxNew: Math.max(1, Math.min(100, num(env.YT_SYNC_MAX_NEW, 25))),
     syncPages: Math.max(1, Math.min(10, num(env.YT_SYNC_PAGES, 1))),
     syncOverlapHours: Math.max(1, num(env.YT_SYNC_OVERLAP_HOURS, 48)),
-    defaultPassword: String(env.YT_SYNC_DEFAULT_PASSWORD || ""),
     requestTimeoutMs: Math.max(3000, num(env.YT_TIMEOUT_MS, 15000)),
     channels: buildChannels(),
   },
@@ -318,6 +317,20 @@ const config = {
   football: {
     host: env.FOOTBALL_RAPIDAPI_HOST || "free-football-soccer-videos.p.rapidapi.com",
     ttl: Math.max(30, num(env.FOOTBALL_CACHE_TTL, 120)),
+  },
+
+  /* Downloads are free: a clip with no direct link is fetched from
+     YouTube with yt-dlp. The binary, format, cookies and extra arguments
+     are all configurable so deployments can tune the extractor. */
+  ytdlp: {
+    enabled: bool(env.YTDLP_ENABLED, true),
+    path: String(env.YTDLP_PATH || "yt-dlp").trim() || "yt-dlp",
+    cookies: String(env.YTDLP_COOKIES || "").trim(),
+    format: String(env.YTDLP_FORMAT || "best[ext=mp4]/best").trim(),
+    extractorArgs: String(env.YTDLP_EXTRACTOR_ARGS || "").trim(),
+    extraArgs: String(env.YTDLP_EXTRA_ARGS || "").trim(),
+    startTimeoutMs: Math.max(5000, num(env.YTDLP_START_TIMEOUT_MS, 45000)),
+    infoTtlSeconds: Math.max(30, num(env.YTDLP_INFO_TTL, 300)),
   },
 
   analytics: {
@@ -344,6 +357,7 @@ const config = {
     unlockMax: Math.max(3, num(env.UNLOCK_RATE_LIMIT_MAX, 25)),
     youtubeMax: Math.max(5, num(env.YOUTUBE_RATE_LIMIT_MAX, 60)),
     dbWriteMax: Math.max(5, num(env.DB_WRITE_RATE_LIMIT_MAX, 90)),
+    downloadMax: Math.max(3, num(env.DOWNLOAD_RATE_LIMIT_MAX, 30)),
   },
 };
 

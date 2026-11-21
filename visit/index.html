@@ -53,19 +53,21 @@
   <main class="page">
     <div class="container">
       <section class="detail-hero" data-reveal>
-        <div class="detail-thumb">
-          <img id="thumb" src="image.png" alt="Clip thumbnail">
-          <span class="badge badge-accent">Free clip</span>
+        <div class="detail-media">
+          <div class="video-frame" id="player">
+            <img id="thumb" src="image.png" alt="Clip thumbnail">
+            <button class="video-play" type="button" id="playBtn" aria-label="Play clip">
+              <ion-icon name="play"></ion-icon>
+            </button>
+            <span class="badge badge-accent video-badge">Free clip</span>
+          </div>
         </div>
 
         <div class="detail-info">
+          <div class="detail-eyebrow" id="channel">D74 Edits</div>
           <h1 id="title">Loading clip…</h1>
 
           <div class="detail-meta">
-            <span>
-              <ion-icon name="person-outline"></ion-icon>
-              D74 Edits
-            </span>
             <span>
               <ion-icon name="calendar-outline"></ion-icon>
               <span id="date">—</span>
@@ -74,27 +76,32 @@
               <ion-icon name="stats-chart-outline"></ion-icon>
               <span id="views">—</span>
             </span>
+            <span>
+              <ion-icon name="cloud-download-outline"></ion-icon>
+              Free download
+            </span>
           </div>
 
           <p class="prose" id="summary">Fetching the details for this clip.</p>
 
           <div class="detail-actions">
-            <button class="btn btn-primary" type="button" id="dl" hidden>
+            <a class="btn btn-primary" id="dl" href="#" download>
               <ion-icon name="arrow-down-circle-outline"></ion-icon>
-              Download clip
-            </button>
+              <span id="dlLabel">Download free</span>
+            </a>
             <button class="btn btn-ghost" type="button" id="wt">
               <ion-icon name="logo-youtube"></ion-icon>
               Watch on YouTube
             </button>
-            <a class="btn btn-ghost" href="../explore/">
-              <ion-icon name="compass-outline"></ion-icon>
-              More clips
-            </a>
+            <button class="btn btn-ghost" type="button" id="copyLink">
+              <ion-icon name="link-outline"></ion-icon>
+              Copy link
+            </button>
           </div>
 
-          <p class="small" id="downloadNote" hidden style="margin-top:12px;color:var(--muted)">
-            Downloads are unlocked with a password from the full video.
+          <p class="small" id="downloadNote" style="margin-top:12px;color:var(--muted)">
+            Free download, no password. If the editor didn't add a direct file, the server fetches the clip from
+            YouTube with yt-dlp.
           </p>
         </div>
       </section>
@@ -110,6 +117,20 @@
           <div class="prose" id="pr">Loading description…</div>
           <div class="chips" id="tags" style="margin-top:18px"></div>
         </div>
+      </section>
+
+      <section class="section" id="similarSection" data-reveal hidden>
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">More like this</h2>
+            <p class="section-desc">Same channel, shared tags and fresh clips from the library.</p>
+          </div>
+          <a class="btn btn-ghost btn-sm" href="../explore/">
+            <ion-icon name="compass-outline"></ion-icon>
+            Explore all
+          </a>
+        </div>
+        <div class="grid" id="similarGrid" aria-live="polite"></div>
       </section>
     </div>
   </main>
@@ -173,38 +194,6 @@
     </div>
   </aside>
   <div class="scrim" id="scrim"></div>
-
-  <!-- Download unlock dialog -->
-  <div class="scrim" id="unlockScrim"></div>
-  <div class="alert-modal" id="unlockModal" role="dialog" aria-modal="true" aria-labelledby="unlockTitle" hidden>
-    <button class="icon-btn modal-x" type="button" id="unlockClose" aria-label="Close">
-      <ion-icon name="close-outline"></ion-icon>
-    </button>
-    <div class="alert-head" id="unlockTitle">Unlock download</div>
-    <p class="alert-body" style="margin-bottom:14px">
-      Enter the password shown in the full video to download this clip in HD.
-    </p>
-
-    <div class="form-error" id="unlockError" role="alert"></div>
-
-    <form class="form" id="unlockForm">
-      <div class="input-wrap">
-        <input class="input" type="password" id="unlockPassword" placeholder="Download password"
-          autocomplete="off" required>
-        <button class="input-toggle" type="button" data-password-toggle="unlockPassword" aria-label="Show password">
-          <ion-icon name="eye-outline"></ion-icon>
-        </button>
-      </div>
-      <button class="btn btn-primary btn-block" type="submit" id="unlockSubmit">
-        Unlock &amp; download
-      </button>
-    </form>
-
-    <p class="small" style="margin-top:14px;color:var(--muted)">
-      Didn't get the password? Watch the full video on
-      <a href="https://youtube.com/@d74edits67" target="_blank" rel="noopener noreferrer">YouTube</a>.
-    </p>
-  </div>
 
   <div class="loader-bg" id="pageLoader" aria-label="Loading">
     <div class="loader"></div>

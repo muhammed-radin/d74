@@ -29,9 +29,25 @@
     box.classList.toggle("show", Boolean(message));
   }
 
+  function isPageUrl(value, ytid) {
+    if (!value) return true;
+    const id = String(ytid || "");
+    return (
+      value === "https://youtube.com/watch?v=" + id ||
+      value === "https://www.youtube.com/watch?v=" + id
+    );
+  }
+
   function isDownloadable(row) {
-    if (!row || !row.url) return false;
-    return row.url !== "https://youtube.com/watch?v=" + row.ytid;
+    return Boolean(row && row.ytid);
+  }
+
+  function downloadLabel(row) {
+    if (!row) return "No clip id";
+    if (isPageUrl(row.url, row.ytid)) {
+      return row.ytid ? "YouTube (yt-dlp)" : "No clip id";
+    }
+    return "Direct link";
   }
 
   function renderPreview() {
@@ -46,13 +62,13 @@
     $("editPreviewDate").textContent = Admin.date(record.date, { dateStyle: "medium" });
     const ready = isDownloadable(record);
     const badge = $("editDownloadable");
-    badge.textContent = ready ? "downloadable" : "page only";
+    badge.textContent = ready ? "free download" : "no clip id";
     badge.className = "admin-badge admin-badge--" + (ready ? "ok" : "neutral");
     $("editRecordInfo").innerHTML = [
       ["Record id", record._id || "—"],
       ["YouTube id", record.ytid || ytId],
       ["Source", record.source || "—"],
-      ["Unlock", ready ? "Password protected" : "No download link"],
+      ["Download", downloadLabel(record)],
     ]
       .map(([key, value]) => "<dt>" + key + "</dt><dd>" + Admin.escape(value) + "</dd>")
       .join("");
@@ -69,8 +85,7 @@
     $("editChannel").value = record.channelTitle || "";
     $("editThumb").value = record.thumb || "";
     $("editDescription").value = record.description || "";
-    $("editUrl").value = record.url || "";
-    $("editPassword").value = record.pw || "";
+    $("editUrl").value = isPageUrl(record.url, record.ytid || ytId) ? "" : record.url || "";
     $("editYtid").value = record.ytid || ytId;
     $("editMetaState").textContent = "Loaded " + Admin.timeAgo(record.date);
     renderPreview();
@@ -122,7 +137,6 @@
       thumb: $("editThumb").value.trim(),
       description: $("editDescription").value.trim(),
       url: $("editUrl").value.trim(),
-      pw: $("editPassword").value.trim(),
     };
     saving = true;
     const button = $("editSave");

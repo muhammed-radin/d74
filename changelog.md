@@ -169,3 +169,14 @@
 - persisted job state in the `jobs` collection so restarts resume from the exact channel, page token and pending batch; the regular cron/manual sync is locked while a bulk job runs
 - fixed Explore, Search and Live TV image fallbacks to show the D74 logo instead of an accent block or initials
 - added channel and job collections to the database allowlist, audited every bulk action and kept cookies, CORS, CSRF and admin session checks unchanged
+
+### 13 ( Free downloads & viewer )
+- removed download passwords and PINs; every clip is free to download from the viewer with no account
+- added `server/ytdlp.js`: if a record has no direct file URL, the server resolves the clip with yt-dlp and streams it back with an attachment header; a direct URL still wins
+- added `GET /api/videos/download` (stream, redirect or `mode=url` JSON) with per-address rate limiting, validated ids, signed-URL caching and friendly bot-check/private/unavailable errors
+- kept `POST /api/videos/unlock` as a password-free legacy alias for old tabs
+- rebuilt the clip viewer with a click-to-play YouTube embed, free-download state, copy-link action and a “More like this” rail powered by `GET /api/videos/similar`
+- removed the download-password fields from the admin installer and clip editor; the URL field is now an optional direct-link override and empty means “use yt-dlp”
+- public video records now report `downloadable` and `downloadSource` (`youtube`, `link`, `none`) instead of relying on a stored password
+- Redis is documented and wired through `REDIS_URL`; when it is set the server reports `Cache driver: Redis` and stores admin sessions in Redis, otherwise it falls back to the bounded memory cache
+- added `YTDLP_*`, `DOWNLOAD_RATE_LIMIT_MAX` and updated Redis guidance to `.env.example`, README and API docs

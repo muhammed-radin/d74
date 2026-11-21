@@ -15,6 +15,7 @@ const db = require("../db");
 const { events } = require("../events");
 const { analytics } = require("../analytics");
 const { youtube } = require("../youtube");
+const ytdlp = require("../ytdlp");
 const channels = require("../channels");
 const { hashPassword, verifyPassword, safeEqualStrings } = require("../auth");
 const { asyncHandler, clientIp, hash } = require("../http");
@@ -32,6 +33,7 @@ const loginLimit = rateLimit({
   key: (req) => String((req.body && req.body.email) || "").toLowerCase(),
 });
 const unlockLimit = rateLimit({ name: "unlock", windowMs: 10 * 60 * 1000, max: config.rateLimits.unlockMax });
+const downloadLimit = rateLimit({ name: "download", windowMs: 10 * 60 * 1000, max: config.rateLimits.downloadMax });
 const youtubeLimit = rateLimit({ name: "youtube", windowMs: 60 * 1000, max: config.rateLimits.youtubeMax });
 const footballLimit = rateLimit({ name: "football", windowMs: 60 * 1000, max: 30 });
 
@@ -56,6 +58,50 @@ function audit(req, action, meta = {}) {
     severity: meta.severity,
     meta: meta.meta,
   });
+}
+
+/* A record can carry a direct file URL supplied by the administrator.
+   The YouTube watch page that sync stores is not a download link, so it
+   is treated as "no override" and yt-dlp is used instead. */
+function directDownloadLink(value, ytid) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch (_) {
+    return "";
+  }
+  if (!["http:", "https:"].includes(parsed.protocol)) return "";
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  const id = String(ytid || "");
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    if (parsed.pathname === "/watch" && parsed.searchParams.get("v") === id) return "";
+    if (parsed.pathname === "/shorts/" + id) return "";
+    if (parsed.pathname === "/embed/" + id) return "";
+  }
+  if (host === "youtu.be" && parsed.pathname.replace(/^\//, "") === id) return "";
+  return parsed.toString();
+}
+
+function words(value) {
+  return new Set(
+    String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(" ")
+      .filter((word) => word.length > 3)
+  );
+}
+
+function sharedWords(a, b) {
+  const left = words(a);
+  if (!left.size) return 0;
+  let shared = 0;
+  words(b).forEach((word) => {
+    if (left.has(word)) shared += 1;
+  });
+  return shared;
 }
 
 router.get("/health", (req, res) => {
@@ -87,6 +133,7 @@ router.get("/config", (req, res) => {
       youtubeChannels: config.youtube.channels.length,
       analytics: true,
       ads: config.adsense.enabled && Boolean(config.adsense.client),
+      freeDownloads: config.ytdlp.enabled,
     },
   });
 });
@@ -213,34 +260,159 @@ router.post(
   })
 );
 
+/* Free download. No password and no pre-published link is required:
+   a direct link wins, otherwise the clip is fetched from YouTube with
+   yt-dlp and streamed back as an attachment. */
+router.get(
+  "/videos/download",
+  downloadLimit,
+  asyncHandler(async (req, res) => {
+    const id = ytdlp.safeId(req.query.id || req.query.ytid);
+    if (!id) return res.status(400).json({ error: "Invalid clip id.", code: "invalid_id" });
+
+    let record = null;
+    try {
+      const found = await db.getCollection("videos", { query: { ytid: id }, ttl: 15, staleTtl: 60 });
+      record = Array.isArray(found) ? found[0] : null;
+    } catch (_) {
+      record = null;
+    }
+
+    const title = (record && record.title) || "D74 clip";
+    const direct = directDownloadLink(record && record.url, id);
+    const wantsJson = String(req.query.mode || "") === "url" || String(req.query.format || "") === "json";
+
+    if (direct) {
+      if (wantsJson) {
+        return res.json({
+          source: "link",
+          title,
+          url: direct,
+          stream: "/api/videos/download?id=" + encodeURIComponent(id),
+        });
+      }
+      res.setHeader("Cache-Control", "no-store");
+      return res.redirect(302, direct);
+    }
+
+    if (wantsJson) {
+      const state = await ytdlp.probe(id);
+      if (!state.ok) {
+        const detail = ytdlp.describeFailure(state.message || "");
+        return res.status(state.code === "ytdlp_unavailable" ? 503 : 502).json({
+          error: state.message || detail.message,
+          code: state.code || detail.code,
+        });
+      }
+      // Resolve now so a bot check or missing format is reported as JSON
+      // instead of being written into the browser's download bar.
+      try {
+        const resolved = await ytdlp.resolveUrl(id);
+        return res.json({
+          source: "youtube",
+          title,
+          url: resolved,
+          stream: "/api/videos/download?id=" + encodeURIComponent(id),
+        });
+      } catch (error) {
+        return res.status(Number(error.status) || 502).json({
+          error: error.message || "The download service could not fetch this clip.",
+          code: error.code || "ytdlp_failed",
+        });
+      }
+    }
+
+    if (req.method === "HEAD") {
+      res.status(200).set(ytdlp.downloadHeaders(title)).end();
+      return;
+    }
+
+    res.setHeader("Cache-Control", "no-store");
+    await ytdlp.stream(id, req, res, { title });
+  })
+);
+
+/* Lightweight recommendations for the viewer. Prefers the same channel,
+   then shared tags and title words, then the newest clips. */
+router.get(
+  "/videos/similar",
+  asyncHandler(async (req, res) => {
+    const id = ytdlp.safeId(req.query.id);
+    if (!id) return res.status(400).json({ error: "Invalid clip id.", code: "invalid_id" });
+    const limit = Math.max(1, Math.min(24, Number(req.query.limit) || 8));
+
+    const payload = await cache.getOrSet(
+      "videos:similar:" + id + ":" + limit,
+      60,
+      async () => {
+        const rows = await db.getAll("videos", { ttl: 60 }).catch(() => []);
+        const all = (Array.isArray(rows) ? rows : []).filter(
+          (row) => row && /^[A-Za-z0-9_-]{6,20}$/.test(String(row.ytid || ""))
+        );
+        const current = all.find((row) => row.ytid === id) || null;
+        const currentTags = new Set(
+          (Array.isArray(current && current.tags) ? current.tags : []).map((tag) => String(tag).toLowerCase())
+        );
+
+        const scored = all
+          .filter((row) => row.ytid !== id)
+          .map((row) => {
+            let score = 0;
+            if (current) {
+              if (current.channelId && row.channelId && row.channelId === current.channelId) score += 8;
+              if (current.channelTitle && row.channelTitle && row.channelTitle === current.channelTitle) score += 5;
+              if (currentTags.size) {
+                const tags = Array.isArray(row.tags) ? row.tags : [];
+                tags.forEach((tag) => {
+                  if (currentTags.has(String(tag).toLowerCase())) score += 2;
+                });
+              }
+              score += sharedWords(current.title, row.title) * 1.5;
+              if (current.category && row.category && row.category === current.category) score += 2;
+            }
+            const when = new Date(row.date || 0).getTime();
+            return { row, score, when: Number.isFinite(when) ? when : 0 };
+          })
+          .sort((a, b) => b.score - a.score || b.when - a.when)
+          .slice(0, limit)
+          .map((entry) => entry.row);
+
+        return {
+          source: "database",
+          items: db.prepareVideos(scored, { stripSecrets: true }),
+        };
+      }
+    );
+
+    publicCache(res, 60);
+    return res.json(payload);
+  })
+);
+
+/* Legacy alias kept for older open tabs. Downloads are free now, so the
+   password is ignored and the caller receives the free download URL. */
 router.post(
   "/videos/unlock",
   unlockLimit,
   asyncHandler(async (req, res) => {
     const body = req.body || {};
-    const id = String(body.id || body.ytid || "").trim();
-    const password = String(body.password || "");
-    if (!/^[A-Za-z0-9_-]{6,20}$/.test(id)) {
-      return res.status(400).json({ error: "Invalid clip id." });
-    }
-    if (!password) return res.status(400).json({ error: "Password is required." });
+    const id = ytdlp.safeId(body.id || body.ytid);
+    if (!id) return res.status(400).json({ error: "Invalid clip id.", code: "invalid_id" });
 
-    const found = await db.getCollection("videos", { query: { ytid: id }, ttl: 15, staleTtl: 60 });
-    const record = Array.isArray(found) ? found[0] : null;
-    if (!record) {
-      return res.status(404).json({ error: "This clip is not available for download." });
+    let record = null;
+    try {
+      const found = await db.getCollection("videos", { query: { ytid: id }, ttl: 15, staleTtl: 60 });
+      record = Array.isArray(found) ? found[0] : null;
+    } catch (_) {
+      record = null;
     }
-
-    const expected = String(record.pw || "");
-    if (!expected || !safeEqualStrings(expected, password)) {
-      audit(req, "clip.unlock.failed", { severity: "warn", meta: { ytid: id } });
-      return res.status(401).json({ error: "Incorrect download password." });
-    }
-
-    if (!record.url || record.url === "https://youtube.com/watch?v=" + record.ytid) {
-      return res.status(404).json({ error: "No download link was provided for this clip." });
-    }
-    return res.json({ url: record.url });
+    const direct = directDownloadLink(record && record.url, id);
+    return res.json({
+      url: direct || "/api/videos/download?id=" + encodeURIComponent(id),
+      source: direct ? "link" : "youtube",
+      deprecated: true,
+      message: "Downloads are free. This endpoint no longer needs a password.",
+    });
   })
 );
 

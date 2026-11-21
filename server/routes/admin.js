@@ -211,7 +211,7 @@ router.get(
       session: req.admin,
       stats: {
         videos: videos.length,
-        downloadable: videos.filter((video) => Boolean(video.url) && video.url !== "https://youtube.com/watch?v=" + video.ytid).length,
+        downloadable: videos.filter((video) => db.prepareVideoRecord(video, { stripSecrets: true }).downloadable).length,
         accounts: accounts.length,
         themes: themes.length,
         requestsToday: traffic.totals.requestsToday,

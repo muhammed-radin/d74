@@ -38,12 +38,18 @@
   function libraryCard(row) {
     const id = row._id || row.id || "";
     const videoId = row.ytid || "";
-    const ready = Boolean(row.downloadable);
+    const ready = Boolean(videoId);
+    const pageUrl = "https://youtube.com/watch?v=" + videoId;
+    const direct =
+      Boolean(row.url) &&
+      row.url !== pageUrl &&
+      row.url !== "https://www.youtube.com/watch?v=" + videoId;
+    const label = ready ? (direct ? "direct link" : "youtube") : "no id";
     return (
       '<article class="admin-video-card">' +
       '<div class="admin-video-thumb"><img loading="lazy" src="' + Admin.escape(thumbForLibrary(row)) +
       '" alt=""><span class="admin-badge admin-badge--' + (ready ? "ok" : "neutral") + '">' +
-      (ready ? "downloadable" : "page only") + "</span></div>" +
+      label + "</span></div>" +
       '<div class="admin-video-body">' +
       '<div class="admin-video-title" title="' + Admin.escape(row.title) + '">' + Admin.escape(row.title || "Untitled clip") + "</div>" +
       '<div class="admin-video-meta"><span>' + Admin.escape(row.channelTitle || "D74 Edits") + "</span><span>" +
@@ -85,7 +91,7 @@
   function visibleLibrary() {
     const query = state.query.trim().toLowerCase();
     return state.all.filter((row) => {
-      const downloadable = Boolean(row.downloadable);
+      const downloadable = Boolean(row.ytid);
       if (state.filter === "downloadable" && !downloadable) return false;
       if (state.filter === "page" && downloadable) return false;
       if (!query) return true;

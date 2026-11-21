@@ -103,7 +103,7 @@
       });
     }
   } else if (accountSummary) {
-    accountSummary.textContent = "Sign up free to unlock downloads.";
+    accountSummary.textContent = "Downloads are free — an account is optional.";
   }
 
   if (logout) {

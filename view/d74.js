@@ -433,11 +433,27 @@
       return request("/api/youtube/videos?id=" + encodeURIComponent(id));
     },
 
-    unlockClip(id, password) {
+    downloadUrl(id) {
+      return "/api/videos/download?id=" + encodeURIComponent(id);
+    },
+
+    downloadInfo(id) {
+      return request("/api/videos/download?id=" + encodeURIComponent(id) + "&mode=url");
+    },
+
+    similarVideos(id, limit) {
+      return request(
+        "/api/videos/similar?id=" + encodeURIComponent(id) + "&limit=" + encodeURIComponent(limit || 8)
+      );
+    },
+
+    // Downloads are free now. Kept for older callers; the password is
+    // ignored by the server.
+    unlockClip(id) {
       return request("/api/videos/unlock", {
         method: "POST",
         csrf: false,
-        body: JSON.stringify({ id: id, password: password }),
+        body: JSON.stringify({ id: id }),
       });
     },
 

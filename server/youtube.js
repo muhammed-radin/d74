@@ -243,12 +243,10 @@ class YouTubeSync {
       description: String(snippet.description || "").slice(0, 800),
       date: snippet.publishedAt || content.videoPublishedAt || new Date().toISOString(),
       thumb: bestThumbnail(snippet.thumbnails),
-      url: "https://youtube.com/watch?v=" + ytid,
       channelId: channel.id,
       channelTitle: channel.title || channel.name,
       source: "youtube-sync",
     };
-    if (config.youtube.defaultPassword) record.pw = config.youtube.defaultPassword;
     return record;
   }
 
@@ -447,12 +445,10 @@ class YouTubeSync {
       description: String(snippet.description || "").slice(0, 800),
       date: snippet.publishedAt || content.publishedAt || new Date().toISOString(),
       thumb: bestThumbnail(snippet.thumbnails),
-      url: "https://youtube.com/watch?v=" + ytid,
       channelId: String(snippet.channelId || "").slice(0, 80),
       channelTitle: String(snippet.channelTitle || "").slice(0, 120),
       source: "bulk-add",
     };
-    if (config.youtube.defaultPassword) record.pw = config.youtube.defaultPassword;
     return record;
   }
 
@@ -638,7 +634,6 @@ class YouTubeSync {
       timezone: config.youtube.syncTimezone,
       pages: config.youtube.syncPages,
       maxNew: config.youtube.syncMaxNew,
-      defaultPassword: Boolean(config.youtube.defaultPassword),
       quota: quotaStatus,
       lastRunAt: this.state.lastRunAt,
       lastResult: this.state.lastResult,
