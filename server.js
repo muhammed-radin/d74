@@ -32,7 +32,7 @@ function startKeepAlive() {
   keepAliveTimer = setInterval(() => {
     const request = http.get(
       {
-        hostname: "127.0.0.1",
+        hostname: "d74.onrender.com",
         port: config.port,
         path: "/api/health",
         timeout: 10000,
