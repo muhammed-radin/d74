@@ -19,6 +19,7 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const config = require("./config");
 const logger = require("./logger");
+const ytjs = require("./ytjs");
 
 const VIDEO_ID = /^[A-Za-z0-9_-]{6,20}$/;
 const URL_LINE = /^https?:\/\/\S+$/i;
@@ -66,7 +67,7 @@ function cookiesFile() {
 }
 
 function baseArgs() {
-  const args = ["--no-playlist", "--no-warnings", "--no-progress", "--no-color"];
+  const args = ["--no-playlist", "--no-warnings", "--no-progress", "--no-color", "--js-runtimes", "node", "--remote-components", "ejs:github"];
   const cookies = cookiesFile();
   if (cookies) args.push("--cookies", cookies);
   if (config.ytdlp.extractorArgs) args.push("--extractor-args", config.ytdlp.extractorArgs);
@@ -256,14 +257,29 @@ async function resolveUrl(ytid) {
   if (!id) {
     throw Object.assign(new Error("Invalid clip id."), { status: 400, code: "invalid_id" });
   }
+  const cached = cacheGet(id);
+  if (cached) return cached.url;
+
+  try {
+    const url = await ytjs.resolveUrl(id);
+    if (url) {
+      cacheSet(id, url);
+      return url;
+    }
+  } catch (error) {
+    logger.warn("YouTube.js resolve failed", {
+      ytid: id,
+      code: "youtubejs_failed",
+      error: (error && error.message) || String(error),
+    });
+  }
+
   if (!config.ytdlp.enabled) {
     throw Object.assign(new Error("Downloads are disabled on this server."), {
       status: 503,
       code: "ytdlp_disabled",
     });
   }
-  const cached = cacheGet(id);
-  if (cached) return cached.url;
 
   const result = await run([...baseArgs(), "-f", config.ytdlp.format, "--get-url", watchUrl(id)]);
   const url = String(result.stdout || "")
@@ -304,7 +320,7 @@ function downloadHeaders(title) {
 /* Stream the clip through the server. Browsers always receive an
    attachment, so a click saves a file instead of opening the YouTube
    player. Resolves when the response is finished or has failed. */
-function stream(ytid, req, res, options = {}) {
+function streamYtdlp(ytid, req, res, options = {}) {
   return new Promise((resolve) => {
     const id = safeId(ytid);
     if (!id) {
@@ -437,12 +453,41 @@ function stream(ytid, req, res, options = {}) {
 async function probe(ytid) {
   const id = safeId(ytid);
   if (!id) return { ok: false, code: "invalid_id" };
+  const jsOk = await ytjs.available();
+  if (jsOk) return { ok: true, version: "youtube.js", provider: "youtubejs" };
   if (!config.ytdlp.enabled) return { ok: false, code: "ytdlp_disabled" };
   const state = await available();
   if (!state.ok) {
     return { ok: false, code: "ytdlp_unavailable", message: state.error || "yt-dlp is not installed." };
   }
-  return { ok: true, version: state.version };
+  return { ok: true, version: state.version, provider: "ytdlp" };
+}
+
+function stream(ytid, req, res, options = {}) {
+  const id = safeId(ytid);
+  if (!id) {
+    res.status(400).json({ error: "Invalid clip id.", code: "invalid_id" });
+    return Promise.resolve();
+  }
+
+  return (async () => {
+    const jsOk = await ytjs.stream(id, req, res, options);
+    if (jsOk) return;
+    if (res.headersSent) return;
+
+    if (!config.ytdlp.enabled) {
+      res.status(503).json({ error: "Downloads are disabled on this server.", code: "ytdlp_disabled" });
+      return;
+    }
+
+    const fallbackOk = await new Promise((resolve) => {
+      // delegate to original yt-dlp implementation
+      streamYtdlp(id, req, res, options).then(() => resolve(true)).catch(() => resolve(false));
+    });
+    if (!fallbackOk && !res.headersSent) {
+      res.status(502).json({ error: "The download service could not fetch this clip right now.", code: "ytdlp_failed" });
+    }
+  })();
 }
 
 module.exports = {

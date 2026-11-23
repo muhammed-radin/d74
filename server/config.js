@@ -330,6 +330,10 @@ const config = {
   /* Downloads are free: a clip with no direct link is fetched from
      YouTube with yt-dlp. The binary, format, cookies and extra arguments
      are all configurable so deployments can tune the extractor. */
+  youtubejs: {
+    enabled: bool(env.YOUTUBEJS_ENABLED, true),
+  },
+
   ytdlp: {
     enabled: bool(env.YTDLP_ENABLED, true),
     path: String(env.YTDLP_PATH || "yt-dlp").trim() || "yt-dlp",

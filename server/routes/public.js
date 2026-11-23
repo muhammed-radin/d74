@@ -133,7 +133,7 @@ router.get("/config", (req, res) => {
       youtubeChannels: config.youtube.channels.length,
       analytics: true,
       ads: config.adsense.enabled && Boolean(config.adsense.client),
-      freeDownloads: config.ytdlp.enabled,
+      freeDownloads: config.youtubejs.enabled || config.ytdlp.enabled,
     },
   });
 });
