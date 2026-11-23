@@ -148,8 +148,7 @@
 }
 
 .stage-thumb img {
-  width: 46%;
-  border-radius: 50%;
+  width: 100%;
   border: 1px solid var(--border-strong);
   transform: scale(1.04);
   filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.55));
