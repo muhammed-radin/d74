@@ -34,7 +34,7 @@ function startKeepAlive() {
   const ping = () => {
     const request = http.get(
       {
-        hostname: "127.0.0.1",
+        hostname: "https://d74.onrender.com",
         port: config.port,
         path: "/api/health",
         timeout: 10000,
