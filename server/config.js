@@ -339,7 +339,7 @@ const config = {
     path: String(env.YTDLP_PATH || "yt-dlp").trim() || "yt-dlp",
     cookies: String(env.YTDLP_COOKIES || "").trim(),
     format: String(env.YTDLP_FORMAT || "best[ext=mp4]/best").trim(),
-    extractorArgs: String(env.YTDLP_EXTRACTOR_ARGS || "").trim(),
+    extractorArgs: String(env.YTDLP_EXTRACTOR_ARGS || "youtube:player_client=android").trim(),
     extraArgs: String(env.YTDLP_EXTRA_ARGS || "").trim(),
     startTimeoutMs: Math.max(5000, num(env.YTDLP_START_TIMEOUT_MS, 45000)),
     infoTtlSeconds: Math.max(30, num(env.YTDLP_INFO_TTL, 300)),

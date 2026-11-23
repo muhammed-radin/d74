@@ -67,7 +67,7 @@ function cookiesFile() {
 }
 
 function baseArgs() {
-  const args = ["--no-playlist", "--no-warnings", "--no-progress", "--no-color", "--js-runtimes", "node", "--remote-components", "ejs:github"];
+  const args = ["--no-playlist", "--no-warnings", "--no-progress", "--no-color"];
   const cookies = cookiesFile();
   if (cookies) args.push("--cookies", cookies);
   if (config.ytdlp.extractorArgs) args.push("--extractor-args", config.ytdlp.extractorArgs);
