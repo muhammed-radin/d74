@@ -1,0 +1,69 @@
+name: Render keep-alive
+
+# Render's free tier spins a web service down after 15 minutes without an
+# external HTTP request. Render does not count the process pinging itself,
+# so this workflow runs outside Render and calls the public health route.
+#
+# Set a repository variable (or secret) named RENDER_SERVICE_URL to override
+# the default URL:
+#   Settings -> Secrets and variables -> Actions -> Variables -> New variable
+#
+# Scheduled GitHub runs can be delayed at busy times. For guaranteed timing,
+# point cron-job.org, UptimeRobot or a similar uptime monitor at the same
+# /api/health endpoint every 10 minutes as well.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: render-keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Ping /api/health
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+
+    env:
+      SERVICE_URL: ${{ vars.RENDER_SERVICE_URL || secrets.RENDER_SERVICE_URL || 'https://d74.onrender.com' }}
+
+    steps:
+      - name: Wake the service and check its health
+        shell: bash
+        run: |
+          set -uo pipefail
+          health_url="${SERVICE_URL%/}/api/health"
+          echo "Keep-alive target: $health_url"
+
+          for attempt in 1 2 3; do
+            code=$(curl -sS --max-time 70 --retry 0 \
+              -o /tmp/d74-health.json \
+              -w '%{http_code}' \
+              "$health_url" 2>/tmp/d74-curl.err) || code="000"
+
+            echo "Attempt $attempt returned HTTP $code"
+            if [ -s /tmp/d74-health.json ]; then
+              head -c 500 /tmp/d74-health.json
+              echo
+            fi
+            if [ -s /tmp/d74-curl.err ]; then
+              cat /tmp/d74-curl.err
+            fi
+
+            if [ "$code" = "200" ] && grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' /tmp/d74-health.json; then
+              echo "Service is awake and healthy."
+              exit 0
+            fi
+
+            # A cold start can take close to a minute, so give it time to
+            # finish booting before the next attempt.
+            sleep 30
+          done
+
+          echo "::error::D74 keep-alive failed after 3 attempts. Check the Render service and RENDER_SERVICE_URL."
+          exit 1

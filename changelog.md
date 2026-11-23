@@ -180,3 +180,14 @@
 - public video records now report `downloadable` and `downloadSource` (`youtube`, `link`, `none`) instead of relying on a stored password
 - Redis is documented and wired through `REDIS_URL`; when it is set the server reports `Cache driver: Redis` and stores admin sessions in Redis, otherwise it falls back to the bounded memory cache
 - added `YTDLP_*`, `DOWNLOAD_RATE_LIMIT_MAX` and updated Redis guidance to `.env.example`, README and API docs
+
+### 14 ( Legal pages, mobile dock & Render keep-alive )
+- added `/privacy/` and `/terms/` with plain-language policies, sticky contents on desktop, scrollable section chips on mobile, print styles and shared `view/legal.css`
+- linked the legal pages from the landing footer, every drawer footer and the login/signup forms
+- redesigned the small-screen bottom navigation as a floating glass dock with a measured sliding indicator, springy icon motion, safe-area padding, focus states and a reduced-motion fallback
+- added `.github/workflows/keep-alive.yml` to call the public `/api/health` route every 10 minutes from outside Render, with retries for cold starts and a configurable `RENDER_SERVICE_URL`
+- corrected the old internal keep-alive, which used the public hostname on the app port; the self-ping is now opt-in, local only, and documented as unable to prevent Render sleep
+- added `production-hosting-docs.md` covering the project, Render deployment, every environment key with sources, Firebase/RapidAPI/Redis/yt-dlp/AdSense setup, secret files, custom domains, health checks, keep-alive, troubleshooting and a security checklist
+- added an optional `render.yaml` Blueprint with the free plan, build/start commands, health check and non-secret environment values
+- refreshed `robots.txt`, `sitemap.xml` (privacy/terms entries) and added `llms.txt` for LLM crawlers
+- updated README, `.env.example` and the project layout for Render hosting and the new pages

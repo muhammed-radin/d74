@@ -158,6 +158,52 @@
       });
   }
 
+  /* --------------------------- mobile dock ------------------------ */
+
+  function initDock() {
+    const dock = document.querySelector(".dock");
+    if (!dock) return;
+
+    let indicator = dock.querySelector(".dock-indicator");
+    if (!indicator) {
+      indicator = document.createElement("span");
+      indicator.className = "dock-indicator";
+      indicator.setAttribute("aria-hidden", "true");
+      dock.prepend(indicator);
+    }
+
+    const links = Array.from(dock.querySelectorAll(".dock-link"));
+
+    function place() {
+      const active = dock.querySelector(".dock-link.active");
+      dock.classList.toggle("dock--idle", !active);
+      if (!active) return;
+      /* offsetLeft/offsetWidth are layout values and are not affected by
+         the dock's entrance transform, unlike getBoundingClientRect(). */
+      dock.style.setProperty("--dock-x", active.offsetLeft + "px");
+      dock.style.setProperty("--dock-w", active.offsetWidth + "px");
+      dock.classList.add("dock--ready");
+    }
+
+    /* Two frames lets Ionicons and webfonts settle before measuring. */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(place);
+    });
+
+    window.addEventListener("resize", place, { passive: true });
+    window.addEventListener("pageshow", place);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(place).catch(function () {});
+    }
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(place);
+      observer.observe(dock);
+      links.forEach(function (link) {
+        observer.observe(link);
+      });
+    }
+  }
+
   /* --------------------------- reveal ----------------------------- */
 
   function initReveal() {
@@ -313,6 +359,7 @@
     initAccent();
     initDrawer();
     initActiveNav();
+    initDock();
     initReveal();
     initCounters();
     initTilt();

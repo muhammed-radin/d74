@@ -36,4 +36,4 @@ Disallow:
 Disallow: /cgi-bin/
 Allow: *
 
-Sitemap: https://mhd-radin.github.io/d74/sitemap.xml
+Sitemap: https://d74.onrender.com/sitemap.xml

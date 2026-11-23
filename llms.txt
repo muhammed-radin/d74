@@ -1,0 +1,34 @@
+# D74 Edits
+
+> D74 Edits is a free football clip and live TV site: a clip library, search, a live channel browser, an embedded player, optional accounts and free downloads. Plain HTML/CSS/JS front end served by an Express server; Firestore stores records, Redis can cache them, and `yt-dlp` resolves downloads when a record has no direct file link.
+
+D74 Edits is hosted at https://d74.onrender.com. The repository is a single Node.js/Express application with no build step; pages are static HTML files under the project root and shared assets live in `view/`.
+
+## Key pages
+
+- [Home](https://d74.onrender.com/): landing page and feature overview.
+- [Explore](https://d74.onrender.com/explore/): clip feed, matches and channels.
+- [Search](https://d74.onrender.com/search/): search the clip library.
+- [Live TV](https://d74.onrender.com/livestreams/): live channel browser.
+- [Clip detail](https://d74.onrender.com/visit/): player and free download (requires `?id=YOUTUBE_ID`).
+- [Privacy Policy](https://d74.onrender.com/privacy/): how information is collected and used.
+- [Terms & Conditions](https://d74.onrender.com/terms/): terms of use.
+- [Admin](https://d74.onrender.com/Admin/): administrator control room (login required).
+
+## Documentation
+
+- [Production hosting guide](https://d74.onrender.com/production-hosting-docs.md): Render deployment, environment keys, Firebase/RapidAPI/Redis/yt-dlp/AdSense setup, keep-alive, troubleshooting and security checklist.
+- [README](https://d74.onrender.com/README.md): project overview, setup, scripts and layout.
+- [sitemap.xml](https://d74.onrender.com/sitemap.xml): sitemap for crawlers.
+- [robots.txt](https://d74.onrender.com/robots.txt): crawler rules.
+
+## API endpoints
+
+- `/api/health`: lightweight health check used by Render and external keep-alive monitors.
+- `/api/config`: public feature flags and AdSense identifiers.
+
+## Optional context
+
+- The free Render tier sleeps after 15 minutes of inactivity; an external request to `/api/health` every 10-14 minutes keeps it awake (see `.github/workflows/keep-alive.yml`).
+- Environment variables are documented in `.env.example` and `production-hosting-docs.md`; secrets are never committed.
+- Admin sessions are server-side, cookie-based and CSRF-protected.

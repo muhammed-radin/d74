@@ -9,6 +9,8 @@ Free football clips, highlights and live TV channels — rebuilt as a fast, resp
 - **Broadcast-inspired design** — near-black canvas, sharp borders, one lime accent, editorial typography and restrained motion. The D74 logo appears in every navigation bar.
 - **Screen-fit hero + motion** — the landing hero uses `svh`/`lvh`/`vh` so it fills exactly one screen. anime.js drives the headline reveal, counters, scroll reveals, pointer tilt and magnetic buttons, with reduced-motion and no-CDN fallbacks.
 - **Responsive everywhere** — public pages and the admin all work from 360 px phones to wide desktops.
+- **Animated mobile dock** — on small screens the bottom navigation is a floating, blurred pill with a sliding active indicator, springy icon motion, safe-area padding and a reduced-motion fallback.
+- **Privacy and terms pages** — presentable, plain-language legal pages with a sticky contents rail on desktop, scrollable section chips on mobile, print styles and links from the footer, drawer and auth pages.
 - **No secrets in the browser** — Firebase service-account credentials, RapidAPI keys and admin secrets live in `.env` and are only read by the Node process.
 - **Secure administrator sessions** — server-side sessions in an `httpOnly`, `SameSite=Strict` cookie; CSRF tokens; idle and absolute expiry; device binding; session-id regeneration; revoke-one and revoke-all; full audit trail.
 - **Free downloads, no passwords** — every clip downloads without a password or PIN. A record with a direct file link uses that link; otherwise the server fetches the clip from YouTube with `yt-dlp` and streams it to the browser as an attachment, so no signed URL reaches the page.
@@ -43,6 +45,21 @@ npm start
 ```
 
 Open <http://localhost:3005>. The admin control room is at <http://localhost:3005/Admin/>.
+
+## Deploy on Render
+
+The full production guide is in [`production-hosting-docs.md`](production-hosting-docs.md). It covers the Render free tier, every environment key with examples and sources, Firebase and RapidAPI setup, Redis, `yt-dlp` downloads, AdSense, secret files, custom domains, troubleshooting and the external keep-alive.
+
+Short version:
+
+1. Create a Render **Web Service** from this repository (runtime `Node`, plan `Free`).
+2. Build: `npm ci && mkdir -p bin && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o bin/yt-dlp && chmod +x bin/yt-dlp`
+3. Start: `npm start`; health check: `/api/health`.
+4. Set the required variables (`NODE_ENV=production`, `TRUST_PROXY=1`, `PUBLIC_ORIGIN`, `SESSION_SECRET`, `RAPIDAPI_KEY`, an admin password/hash, Firebase credentials, `YTDLP_PATH=bin/yt-dlp`).
+5. Upload the Firebase service account as a **Secret File** and point `FIREBASE_SERVICE_ACCOUNT_PATH` at `/etc/secrets/firebase-service-account.json`.
+6. Enable the included `.github/workflows/keep-alive.yml` workflow and set the `RENDER_SERVICE_URL` repository variable. Render's free tier only counts **external** requests, so an internal self-ping cannot stop it sleeping.
+
+`render.yaml` is an optional Blueprint for the same setup.
 
 The live catalogue starts empty. Sign in to the admin and use **Live channels** to publish channels; no channel data is hardcoded in the site.
 
@@ -200,8 +217,9 @@ See [`.env.example`](.env.example) for the complete, commented list. The most im
 
 | Variable | Purpose |
 | --- | --- |
-| `PORT` | HTTP port (default `3005`). |
+| `PORT` | HTTP port (default `3005`; Render injects its own). |
 | `NODE_ENV` | `production` enables HSTS, secure cookies and hidden internal errors. |
+| `PUBLIC_ORIGIN` / `TRUST_PROXY` | Canonical HTTPS origin and proxy trust for Render (`TRUST_PROXY=1`). |
 | `SESSION_SECRET` | Signs cookies and anonymises analytics. Use a long random value. |
 | `DB_PROVIDER` | `firebase` (default), `restdb` (disabled legacy) or `local` (development only). |
 | `FIREBASE_SERVICE_ACCOUNT` / `FIREBASE_SERVICE_ACCOUNT_PATH` | Server-side Google service account for Firestore. |
@@ -215,6 +233,7 @@ See [`.env.example`](.env.example) for the complete, commented list. The most im
 | `DOWNLOAD_RATE_LIMIT_MAX` | Free download requests per 10 minutes per address. |
 | `DB_DAILY_LIMIT` / `YT_DAILY_LIMIT` | Daily quota caps (`0` disables). |
 | `BULK_BATCH_SIZE` / `BULK_DAILY_LIMIT` / `BULK_DELAY_MINUTES` | Bulk sync batch size, daily cap and delay. |
+| `KEEP_ALIVE_SELF` | Optional local self-ping. It does **not** stop Render sleeping; use the external workflow/monitor described in [`production-hosting-docs.md`](production-hosting-docs.md). |
 
 Generate a session secret:
 
@@ -352,9 +371,12 @@ Earlier versions of this project committed real credentials to git. Deleting the
 │   ├── quota.js              # daily DB/YouTube counters
 │   └── routes/               # public, admin and database routers
 ├── .env.example              # environment template
+├── production-hosting-docs.md # Render hosting, env keys, keep-alive, troubleshooting
+├── render.yaml               # optional Render Blueprint
+├── .github/workflows/        # external keep-alive workflow
 ├── scripts/check.js          # syntax + CSS health check
 ├── server/data/              # legacy import, sync state, local fallback (gitignored)
-├── view/                     # shared design system (app.css, color.css, ui.js, d74.js, motion.js)
+├── view/                     # shared design system (app.css, color.css, legal.css, ui.js, d74.js, motion.js)
 ├── index.html                # landing page
 ├── explore/                  # clip feed + matches + channels
 ├── search/                   # search page
@@ -363,6 +385,7 @@ Earlier versions of this project committed real credentials to git. Deleting the
 ├── visit/                    # clip detail, player and free downloads
 ├── login/ signup/            # auth pages
 ├── settings/                 # theme, accent, account
+├── privacy/ terms/           # privacy policy and terms & conditions
 ├── 404/
 └── Admin/                    # shell, dashboard, analytics, videos, sync, channels,
                               # accounts, themes, monitoring, installer, editor, login

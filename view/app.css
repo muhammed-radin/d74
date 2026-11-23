@@ -273,12 +273,12 @@ ol {
   scrollbar-width: thin;
 }
 
-.rail > * {
+.rail>* {
   flex: 0 0 clamp(262px, 76vw, 350px);
   scroll-snap-align: start;
 }
 
-.rail-sm > * {
+.rail-sm>* {
   flex-basis: clamp(150px, 42vw, 190px);
 }
 
@@ -554,12 +554,10 @@ ol {
   position: absolute;
   z-index: -1;
   inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 18%,
-    rgba(255, 255, 255, 0.24) 46%,
-    transparent 74%
-  );
+  background: linear-gradient(110deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.24) 46%,
+      transparent 74%);
   transform: translateX(-135%);
   transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
@@ -832,12 +830,12 @@ ol {
   margin-top: 54px;
 }
 
-.hero-stats > div {
+.hero-stats>div {
   padding: 2px 28px;
   border-left: 1px solid var(--border-strong);
 }
 
-.hero-stats > div:first-child {
+.hero-stats>div:first-child {
   padding-left: 0;
   border-left: 0;
 }
@@ -1050,9 +1048,11 @@ ol {
   content: "";
   width: 18px;
   height: 18px;
-  border-radius: 50%;
-  background: var(--accent);
+  border-radius: 50%; 
+  /* background: var(--accent); */
   flex: none;
+  background: url("/logo.png") center center;
+  background-size: 100%; 
 }
 
 /* Compatibility with legacy card markup */
@@ -1555,6 +1555,21 @@ textarea.input:focus {
   text-decoration: underline;
 }
 
+.auth-legal {
+  margin-top: 8px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.auth-legal a:hover {
+  color: var(--accent);
+}
+
 .divider {
   display: flex;
   align-items: center;
@@ -1697,7 +1712,7 @@ textarea.input:focus {
   margin-bottom: 4px;
 }
 
-.settings-card > .muted {
+.settings-card>.muted {
   font-size: 0.8rem;
   margin-bottom: 16px;
 }
@@ -2022,6 +2037,27 @@ textarea.input:focus {
   color: var(--muted);
 }
 
+.drawer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.drawer-legal a {
+  transition: color 0.2s ease;
+}
+
+.drawer-legal a:hover {
+  color: var(--accent);
+}
+
 .scrim {
   position: fixed;
   inset: 0;
@@ -2039,31 +2075,53 @@ textarea.input:focus {
 }
 
 .dock {
+  --dock-pad: 7px;
+  --dock-radius: 20px;
   position: fixed;
   z-index: 850;
   left: 50%;
-  bottom: 12px;
+  bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 6px));
   transform: translateX(-50%);
-  width: min(460px, calc(100% - 24px));
+  width: min(430px, calc(100% - 20px));
+  height: 66px;
   display: flex;
-  align-items: center;
-  justify-content: space-around;
-  gap: 2px;
-  padding: 6px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: var(--bg-elev);
-  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.8);
+  align-items: stretch;
+  gap: 3px;
+  padding: var(--dock-pad);
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-elev) 78%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  box-shadow:
+    0 24px 60px -24px rgba(0, 0, 0, 0.92),
+    0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.28);
+  isolation: isolate;
+  animation: dock-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Hairline glow along the top edge, plus a soft inner sheen. */
 .dock::before {
   content: "";
   position: absolute;
+  z-index: -1;
   top: -1px;
-  left: 16px;
-  right: 16px;
-  height: 2px;
-  background: var(--accent);
+  left: 18%;
+  right: 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.55;
+}
+
+.dock::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.07), transparent 58%);
+  pointer-events: none;
 }
 
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
@@ -2072,35 +2130,168 @@ textarea.input:focus {
   }
 }
 
+/* The moving pill behind the active link. ui.js sets --dock-x/--dock-w
+   from the real link geometry, so it keeps working at any width. */
+.dock-indicator {
+  position: absolute;
+  z-index: 0;
+  top: var(--dock-pad);
+  bottom: var(--dock-pad);
+  left: 0;
+  width: var(--dock-w, 25%);
+  transform: translate3d(var(--dock-x, 0px), 0, 0);
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 19%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
+  box-shadow:
+    0 10px 30px -14px color-mix(in srgb, var(--accent) 70%, transparent),
+    0 1px 0 0 rgba(255, 255, 255, 0.12) inset;
+  opacity: 0;
+  transition:
+    transform 0.52s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.52s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.dock--ready .dock-indicator {
+  opacity: 1;
+}
+
+.dock--idle .dock-indicator {
+  opacity: 0;
+}
+
 .dock-link {
-  flex: 1;
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 7px 4px;
-  border-radius: var(--radius-sm);
+  justify-content: center;
+  gap: 5px;
+  padding: 0 2px;
+  border-radius: 16px;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 0.53rem;
+  font-size: 0.52rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  transition: color 0.2s ease, background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.24s ease;
+}
+
+/* Before the indicator is measured, keep the active item readable. */
+.dock:not(.dock--ready) .dock-link.active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .dock-link ion-icon {
-  font-size: 1.28rem;
+  font-size: 1.32rem;
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 0.24s ease,
+    filter 0.24s ease;
+  will-change: transform;
 }
 
-.dock-link.active,
-.dock-link:hover {
-  color: var(--text);
-  background: var(--surface-2);
+.dock-link span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.24s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dock-link.active {
+  color: var(--accent);
 }
 
 .dock-link.active ion-icon {
   color: var(--accent);
+  transform: translateY(-2px) scale(1.1);
+  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--accent) 45%, transparent));
+  animation: dock-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dock-link.active span {
+  color: var(--text);
+  transform: translateY(-1px);
+  letter-spacing: 0.1em;
+}
+
+.dock-link:active ion-icon {
+  transform: scale(0.86);
+  transition-duration: 0.08s;
+  animation: none;
+}
+
+.dock-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dock-link:hover {
+    color: var(--text);
+  }
+
+  .dock-link:not(.active):hover ion-icon {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes dock-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes dock-pop {
+  0% {
+    transform: translateY(0) scale(0.9);
+  }
+
+  58% {
+    transform: translateY(-3px) scale(1.18);
+  }
+
+  100% {
+    transform: translateY(-2px) scale(1.1);
+  }
+}
+
+@media (max-width: 380px) {
+  .dock {
+    width: calc(100% - 12px);
+    height: 62px;
+    border-radius: 20px;
+  }
+
+  .dock-link {
+    gap: 4px;
+    font-size: 0.47rem;
+    letter-spacing: 0.06em;
+  }
+
+  .dock-link ion-icon {
+    font-size: 1.2rem;
+  }
+
+  .dock-link.active span {
+    letter-spacing: 0.07em;
+  }
 }
 
 /* ------------------------------------------------------------------
@@ -2404,7 +2595,7 @@ textarea.input:focus {
   opacity: 1;
 }
 
-.admin-tile > * {
+.admin-tile>* {
   position: relative;
   z-index: 1;
 }
@@ -2529,11 +2720,13 @@ textarea.input:focus {
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.55;
     transform: scale(0.75);
@@ -2541,23 +2734,28 @@ textarea.input:focus {
 }
 
 @keyframes drift {
+
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   33% {
     transform: translate3d(30px, 24px, 0) scale(1.05);
   }
+
   66% {
     transform: translate3d(-24px, 16px, 0) scale(0.97);
   }
 }
 
 @keyframes shine {
+
   0%,
   60% {
     transform: translateX(-130%);
   }
+
   80%,
   100% {
     transform: translateX(130%);
@@ -2568,9 +2766,11 @@ textarea.input:focus {
   0% {
     background-position: 0% center;
   }
+
   50% {
     background-position: 100% center;
   }
+
   100% {
     background-position: 0% center;
   }
@@ -2587,6 +2787,7 @@ textarea.input:focus {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.94);
   }
+
   100% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
@@ -2598,6 +2799,7 @@ textarea.input:focus {
     opacity: 0;
     transform: translateY(22px) scale(0.985);
   }
+
   100% {
     opacity: 1;
     transform: none;
@@ -2609,6 +2811,7 @@ textarea.input:focus {
     opacity: 0;
     transform: translateX(24px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -2616,23 +2819,28 @@ textarea.input:focus {
 }
 
 @keyframes shake {
+
   0%,
   100% {
     transform: translateX(0);
   }
+
   25% {
     transform: translateX(-5px);
   }
+
   75% {
     transform: translateX(5px);
   }
 }
 
 @keyframes float-y {
+
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -2746,11 +2954,11 @@ textarea.input:focus {
     gap: 0;
   }
 
-  .hero-stats > div {
+  .hero-stats>div {
     padding: 2px 10px;
   }
 
-  .hero-stats > div:first-child {
+  .hero-stats>div:first-child {
     padding-left: 0;
   }
 
@@ -2765,6 +2973,7 @@ textarea.input:focus {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

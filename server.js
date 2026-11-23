@@ -29,10 +29,12 @@ let keepAliveTimer = null;
 let shuttingDown = false;
 
 function startKeepAlive() {
-  keepAliveTimer = setInterval(() => {
+  if (!config.keepAlive.self) return;
+
+  const ping = () => {
     const request = http.get(
       {
-        hostname: "d74.onrender.com",
+        hostname: "127.0.0.1",
         port: config.port,
         path: "/api/health",
         timeout: 10000,
@@ -41,9 +43,16 @@ function startKeepAlive() {
     );
 
     request.on("error", (error) => {
-      logger.warn("Keep-alive request failed", { error });
+      logger.warn("Self keep-alive request failed", { error: error.message });
     });
-  }, 60000);
+  };
+
+  ping();
+  keepAliveTimer = setInterval(ping, config.keepAlive.intervalMs);
+  logger.info("Self keep-alive enabled", {
+    intervalMs: config.keepAlive.intervalMs,
+    note: "Render ignores self-requests; use an external ping to prevent sleep.",
+  });
 }
 
 async function start() {
@@ -97,6 +106,15 @@ async function start() {
   });
 
   startKeepAlive();
+
+  const keepAliveUrl =
+    (config.publicOrigin || process.env.RENDER_EXTERNAL_URL || "https://d74.onrender.com") +
+    "/api/health";
+  logger.info("Keep-alive endpoint", {
+    url: keepAliveUrl,
+    hint: "Ping every 10–14 minutes from outside Render. See production-hosting-docs.md.",
+  });
+
   return app;
 }
 

@@ -1,0 +1,56 @@
+# Render Blueprint for D74 Edits.
+#
+# Use Render → New → Blueprint and connect this repository. Values marked
+# `sync: false` are prompted for during setup and are not stored in git.
+# Firebase and yt-dlp cookie files are added as Secret Files afterwards:
+#   firebase-service-account.json -> /etc/secrets/firebase-service-account.json
+#   yt-dlp-cookies.txt            -> /etc/secrets/yt-dlp-cookies.txt
+#
+# See production-hosting-docs.md for every variable and how to obtain it.
+
+services:
+  - type: web
+    name: d74
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: true
+    buildCommand: >-
+      npm ci &&
+      mkdir -p bin &&
+      curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o bin/yt-dlp &&
+      chmod +x bin/yt-dlp
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: PUBLIC_ORIGIN
+        sync: false
+      - key: DB_PROVIDER
+        value: firebase
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        value: /etc/secrets/firebase-service-account.json
+      - key: RAPIDAPI_KEY
+        sync: false
+      - key: YOUTUBE_CHANNEL_ID
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: YTDLP_ENABLED
+        value: "true"
+      - key: YTDLP_PATH
+        value: bin/yt-dlp
+      - key: KEEP_ALIVE_SELF
+        value: "false"

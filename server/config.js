@@ -265,6 +265,14 @@ const config = {
     connectTimeoutMs: Math.max(500, num(env.REDIS_CONNECT_TIMEOUT_MS, 3000)),
   },
 
+  /* The self-ping only warms the local event loop; Render does not treat
+     it as activity and will still sleep the free instance. Real keep-alive
+     traffic must come from outside the service (see the GitHub workflow). */
+  keepAlive: {
+    self: bool(env.KEEP_ALIVE_SELF, false),
+    intervalMs: Math.max(60000, num(env.KEEP_ALIVE_INTERVAL_MS, 600000)),
+  },
+
   cache: {
     prefix: env.CACHE_PREFIX || "d74:",
     maxEntries: Math.max(100, num(env.CACHE_MAX_ENTRIES, 5000)),
