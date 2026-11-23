@@ -194,6 +194,69 @@ function serveStatic(req, res, next) {
   return sendFile(req, res, target);
 }
 
+function escapeHtmlAttribute(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
+}
+
+function injectSharingMetadata(html, req) {
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const descriptionMatch = html.match(/<meta\s+[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+  const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "D74 Edits";
+  const description = descriptionMatch
+    ? descriptionMatch[1].trim()
+    : "Free football clips, highlights, status videos and live TV.";
+  const origin = (
+    config.publicOrigin ||
+    process.env.RENDER_EXTERNAL_URL ||
+    "https://d74.onrender.com"
+  ).replace(/\/+$/, "");
+  const pathName = req.path || "/";
+  const canonical = origin + pathName;
+  const image = `${origin}/logo.png`;
+
+  const tags = [
+    '<meta name="application-name" content="D74 Edits">',
+    '<meta name="apple-mobile-web-app-title" content="D74 Edits">',
+    '<meta name="apple-mobile-web-app-capable" content="yes">',
+    '<meta name="mobile-web-app-capable" content="yes">',
+    '<link rel="icon" type="image/x-icon" href="/favicon.ico">',
+    '<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">',
+    '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<link rel="manifest" href="/site.webmanifest">',
+    `<link rel="canonical" href="${escapeHtmlAttribute(canonical)}">`,
+    '<meta property="og:locale" content="en_US">',
+    '<meta property="og:site_name" content="D74 Edits">',
+    `<meta property="og:type" content="website">`,
+    `<meta property="og:url" content="${escapeHtmlAttribute(canonical)}">`,
+    `<meta property="og:title" content="${escapeHtmlAttribute(title)}">`,
+    `<meta property="og:description" content="${escapeHtmlAttribute(description)}">`,
+    `<meta property="og:image" content="${escapeHtmlAttribute(image)}">`,
+    '<meta property="og:image:width" content="1024">',
+    '<meta property="og:image:height" content="1024">',
+    '<meta property="og:image:alt" content="D74 Edits logo">',
+    '<meta name="twitter:card" content="summary">',
+    `<meta name="twitter:title" content="${escapeHtmlAttribute(title)}">`,
+    `<meta name="twitter:description" content="${escapeHtmlAttribute(description)}">`,
+    `<meta name="twitter:image" content="${escapeHtmlAttribute(image)}">`,
+    '<meta name="twitter:image:alt" content="D74 Edits logo">',
+  ];
+
+  let output = html
+    .replace(/<meta\s+[^>]*property=["']og:(?:locale|site_name|type|url|title|description|image|image:width|image:height|image:alt)["'][^>]*>\s*/gi, "")
+    .replace(/<meta\s+[^>]*name=["'](?:twitter:card|twitter:title|twitter:description|twitter:image|twitter:image:alt)["'][^>]*>\s*/gi, "")
+    .replace(/<meta\s+[^>]*name=["'](?:application-name|apple-mobile-web-app-title|apple-mobile-web-app-capable|mobile-web-app-capable)["'][^>]*>\s*/gi, "")
+    .replace(/<link\s+[^>]*rel=["']canonical["'][^>]*>\s*/gi, "")
+    .replace(/<link\s+[^>]*rel=["'](?:shortcut )?icon["'][^>]*>\s*/gi, "")
+    .replace(/<link\s+[^>]*rel=["']apple-touch-icon["'][^>]*>\s*/gi, "")
+    .replace(/<link\s+[^>]*rel=["']manifest["'][^>]*>\s*/gi, "");
+
+  return output.replace(/<head([^>]*)>/i, (match) => `${match}\n  ${tags.join("\n  ")}`);
+}
+
 function sendFile(req, res, file) {
   const ext = path.extname(file).toLowerCase();
   const isHtml = ext === ".html";
@@ -211,11 +274,21 @@ function sendFile(req, res, file) {
   if (req.method === "HEAD") {
     return res.status(200).end();
   }
-  return res.sendFile(file, { dotfiles: "deny" }, (error) => {
-    if (!error) return;
-    if (res.headersSent) return;
-    logger.error("Static file send failed", { file, error: error.message });
-    res.status(500).type("text/plain").send("Server error");
+  if (!isHtml) {
+    return res.sendFile(file, { dotfiles: "deny" }, (error) => {
+      if (!error) return;
+      if (res.headersSent) return;
+      logger.error("Static file send failed", { file, error: error.message });
+      res.status(500).type("text/plain").send("Server error");
+    });
+  }
+
+  fs.readFile(file, "utf8", (error, html) => {
+    if (error) {
+      logger.error("Static HTML read failed", { file, error: error.message });
+      return res.status(500).type("text/plain").send("Server error");
+    }
+    return res.send(injectSharingMetadata(html, req));
   });
 }
 
