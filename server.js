@@ -12,6 +12,7 @@
 ------------------------------------------------------------------ */
 
 const http = require("http");
+const https = require("https");
 const config = require("./server/config");
 const logger = require("./server/logger");
 const { cache } = require("./server/cache");
@@ -32,15 +33,19 @@ function startKeepAlive() {
   if (!config.keepAlive.self) return;
 
   const ping = () => {
-    const request = http.get(
-      {
-        hostname: "https://d74.onrender.com",
-        port: config.port,
-        path: "/api/health",
-        timeout: 10000,
-      },
-      (response) => response.resume()
-    );
+    const baseUrl =
+      config.publicOrigin ||
+      process.env.RENDER_EXTERNAL_URL ||
+      "https://d74.onrender.com";
+    let target;
+    try {
+      target = new URL("/api/health", baseUrl);
+    } catch (error) {
+      logger.warn("Invalid self keep-alive URL", { error: error.message });
+      return;
+    }
+    const client = target.protocol === "http:" ? http : https;
+    const request = client.get(target, { timeout: 10000 }, (response) => response.resume());
 
     request.on("error", (error) => {
       logger.warn("Self keep-alive request failed", { error: error.message });

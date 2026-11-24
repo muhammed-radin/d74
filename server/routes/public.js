@@ -106,6 +106,8 @@ function sharedWords(a, b) {
 
 router.get("/health", (req, res) => {
   const snapshot = cache.snapshot();
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Expires", "0");
   res.json({
     ok: true,
     uptime: Math.round(process.uptime()),

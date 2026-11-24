@@ -14,7 +14,9 @@ name: Render keep-alive
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # Keep 5 minutes clear of Render's 15-minute idle threshold. GitHub
+    # may delay scheduled runs, so the workflow also retries cold starts.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions: {}
@@ -38,10 +40,13 @@ jobs:
         run: |
           set -uo pipefail
           health_url="${SERVICE_URL%/}/api/health"
+          health_url="${health_url}?keep_alive=$(date +%s)"
           echo "Keep-alive target: $health_url"
 
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4; do
             code=$(curl -sS --max-time 70 --retry 0 \
+              --header 'Cache-Control: no-cache' \
+              --header 'Accept: application/json' \
               -o /tmp/d74-health.json \
               -w '%{http_code}' \
               "$health_url" 2>/tmp/d74-curl.err) || code="000"
